@@ -73,9 +73,11 @@ class WechatSogouAPI(object):
         if unlock_callback is None:
             unlock_callback = unlock_sogou_callback_example
         millis = int(round(time.time() * 1000))
-        r_captcha = session.get('http://weixin.sogou.com/antispider/util/seccode.php?tc={}'.format(millis), headers={
+        captcha_url = 'http://weixin.sogou.com/antispider/util/seccode.php?tc={}'.format(millis)
+        r_captcha = session.get(captcha_url, headers={
             'Referer': url,
         })
+        print('__unlock_sogou, url={}, ref={}'.format(captcha_url, url))
         if not r_captcha.ok:
             raise WechatSogouRequestsException('WechatSogouAPI get img', r_captcha)
 
@@ -113,16 +115,19 @@ class WechatSogouAPI(object):
 
         if not session:
             session = requests.session()
-        resp = self.__get(url, session, headers=self.__set_cookie(referer=referer))
+        headers = self.__set_cookie(referer=referer)
+        resp = self.__get(url, session, headers=headers)
         resp.encoding = 'utf-8'
         if 'antispider' in resp.url or '请输入验证码' in resp.text:
             for i in range(self.captcha_break_times):
                 try:
                     unlock_platform(url=url, resp=resp, session=session, unlock_callback=unlock_callback, identify_image_callback=identify_image_callback)
                     break
-                except WechatSogouVcodeOcrException as e:
+                except (WechatSogouVcodeOcrException, WechatSogouRequestsException) as e:
                     if i == self.captcha_break_times - 1:
                         raise WechatSogouVcodeOcrException(e)
+                    # else:
+                    #     time.sleep(0.05)
 
             if '请输入验证码' in resp.text:
                 resp = session.get(url)
@@ -188,6 +193,7 @@ class WechatSogouAPI(object):
 
             pads = re.findall(r'href\.substr\(a\+(\d+)\+parseInt\("(\d+)"\)\+b,1\)', text)
             url = _parse_url(url, pads[0] if pads else [])
+            print('in __format_url, before __get_by_unlock, url={}'.format(url))
             resp = self.__get_by_unlock(url,
                                         referer=referer,
                                         unlock_platform=self.__unlock_sogou,
@@ -203,6 +209,10 @@ class WechatSogouAPI(object):
             if mp_url:
                 uri = uri + ''.join(mp_url)
             url = uri.replace('@', '')
+            if len(url) == 0:
+                print('======text start=================================')
+                print(resp.text)
+                print('======text end=================================')
         return url
 
     def get_gzh_info(self, wecgat_id_or_name, unlock_callback=None, identify_image_callback=None, decode_url=True):
@@ -354,8 +364,9 @@ class WechatSogouAPI(object):
             requests error
         """
         url = WechatSogouRequest.gen_search_article_url(keyword, page, timesn, article_type, ft, et)
+        print('search_article, url={}'.format(url))
         session = requests.session()
-        resp = self.__get_by_unlock(url, WechatSogouRequest.gen_search_article_url(keyword),
+        resp = self.__get_by_unlock(url, WechatSogouRequest.gen_search_article_url(keyword, article_type=article_type),
                                     unlock_platform=self.__unlock_sogou,
                                     unlock_callback=unlock_callback,
                                     identify_image_callback=identify_image_callback,
@@ -364,8 +375,10 @@ class WechatSogouAPI(object):
         article_list = WechatSogouStructuring.get_article_by_search(resp.text)
         for i in article_list:
             if decode_url:
+                print('article in result of search_article, before format, url={}, profile_url={}'.format(i['article']['url'], i['gzh']['profile_url']))
                 i['article']['url'] = self.__format_url(i['article']['url'], url, resp.text, unlock_callback=unlock_callback, identify_image_callback=identify_image_callback, session=session)
                 i['gzh']['profile_url'] = self.__format_url(i['gzh']['profile_url'], url, resp.text, unlock_callback=unlock_callback, identify_image_callback=identify_image_callback, session=session)
+                print('article in result of search_article, after format, url={}, profile_url={}'.format(i['article']['url'], i['gzh']['profile_url']))
             yield i
 
     def get_gzh_article_by_history(self, keyword=None, url=None,
@@ -524,6 +537,7 @@ class WechatSogouAPI(object):
         WechatSogouRequestsException
         """
 
+        print('get_article_content, url={}'.format(url))
         resp = self.__get_by_unlock(url,
                                     unlock_platform=self.__unlock_wechat,
                                     unlock_callback=unlock_callback,
@@ -536,7 +550,7 @@ class WechatSogouAPI(object):
             return resp.text
         content_info = WechatSogouStructuring.get_article_detail(resp.text, del_qqmusic=del_qqmusic,
                                                                  del_voice=del_mpvoice)
-        if hosting_callback:
+        if hosting_callback and content_info is not None:
             content_info = self.__hosting_wechat_img(content_info, hosting_callback)
         return content_info
 
@@ -565,3 +579,53 @@ class WechatSogouAPI(object):
 
         sugg = re.findall(u'\["' + keyword + '",(.*?),\["', r.text)[0]
         return json.loads(sugg)
+
+    def get_gzh_detail(self, profile_url, unlock_callback=None, identify_image_callback=None, decode_url=True):
+        """根据公众号url（来源如文章列表）获取公众号详情
+
+        对于出现验证码的情况，可以由使用者自己提供：
+            1、函数 unlock_callback ，这个函数 handle 出现验证码到解决的整个流程
+            2、也可以 只提供函数 identify_image_callback，这个函数输入验证码二进制数据，输出验证码文字，剩下的由 wechatsogou 包来解决
+        注意：
+            函数 unlock_callback 和 identify_image_callback 只需要提供一个，如果都提供了，那么 identify_image_callback 不起作用
+
+        Parameters
+        ----------
+        profile_url : str
+            URL
+        unlock_callback : callable
+            处理出现验证码页面的函数，参见 unlock_callback_example
+        identify_image_callback : callable
+            处理验证码函数，输入验证码二进制数据，输出文字，参见 identify_image_callback_example
+        decode_url : bool
+            是否解析 url
+
+        Returns
+        -------
+        dict
+        {
+            'avatar': str,  # 头像
+            'wechat_id': str,  # 微信号
+            'desc': str,  # 功能介绍
+            'principal': str,  # 账号主体
+            'qr_code': str,  # 二维码
+        }
+
+        Raises
+        ------
+        WechatSogouRequestsException
+            requests error
+        """
+
+        session = requests.session()
+        print('get_gzh_detail, profile_url={}'.format(profile_url))
+        resp = self.__get_by_unlock(profile_url,
+                                    unlock_platform=self.__unlock_wechat,
+                                    unlock_callback=unlock_callback,
+                                    identify_image_callback=identify_image_callback,
+                                    session=session)
+        result = WechatSogouStructuring.get_gzh_detail(resp.text)
+        if decode_url and result['qr_code'].startswith('/'):
+            result['qr_code'] = 'http://mp.weixin.qq.com{}'.format(result['qr_code'])
+
+        return result

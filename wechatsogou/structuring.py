@@ -415,7 +415,7 @@ class WechatSogouStructuring(object):
             open_id = get_first_of_element(xpath_time, 'span/@data-openid')
             headimage = get_first_of_element(xpath_time, 'span/@data-headimage')
             gzh_name = get_first_of_element(xpath_time, 'span/text()')
-            send_time = xpath_time.xpath('a/span/@data-lastmodified')
+            send_time = xpath_time.xpath('span/@data-lastmodified')
             main_img = get_first_of_element(li, 'div[2]/a/img/@src')
 
             try:
@@ -468,6 +468,8 @@ class WechatSogouStructuring(object):
         # 1. 获取微信文本content
         html_obj = BeautifulSoup(text, "lxml")
         content_text = html_obj.find('div', {'class': 'rich_media_content', 'id': 'js_content'})
+        if content_text is None:
+            return None
 
         # 2. 删除部分标签
         if del_qqmusic:
@@ -524,4 +526,41 @@ class WechatSogouStructuring(object):
         return {
             'content_html': content_html,
             'content_img_list': all_img_list
+        }
+
+    @staticmethod
+    def get_gzh_detail(text):
+        """通过 文章列表 中的公众号profile_url进入公众号详情页，获取公众号信息
+
+        Parameters
+        ----------
+        text : str or unicode
+            公众号详情页文本
+
+        Returns
+        -------
+        dict
+        {
+            'avatar': str,  # 头像
+            'wechat_id': str,  # 微信号
+            'desc': str,  # 功能介绍
+            'principal': str,  # 账号主体
+            'qr_code': str,  # 二维码
+        }
+        """
+        page = etree.HTML(text)
+        profile_info = get_first_of_element(page, '//div[@class="page_profile_info"]')
+        profile_area = get_first_of_element(profile_info, 'div[1]/div[@class="profile_info_area"]')
+        profile_avatar = get_first_of_element(profile_area, 'div[1]/span/img/@src')
+        profile_wechat_id = get_first_of_element(profile_area, 'div[1]/div/p/text()')
+        profile_wechat_id.removeprefix('微信号: ')
+        profile_desc = get_first_of_element(profile_area, 'ul/li[1]/div/text()')
+        profile_principal = get_first_of_element(profile_area, 'ul/li[2]/div/text()')
+        profile_qr_code = get_first_of_element(profile_info, 'div[2]/div/div/img/@src')
+        return {
+            'avatar': profile_avatar,
+            'wechat_id': profile_wechat_id,
+            'desc': profile_desc,
+            'principal': profile_principal,
+            'qr_code': profile_qr_code
         }
