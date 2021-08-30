@@ -121,9 +121,22 @@ def get_url_param(url):
 
 
 def format_image_url(url):
-    if isinstance(url, list):
-        return [format_image_url(i) for i in url]
+    url = __format_image_url(url)
+    if not isinstance(url, list):
+        return url
+    result = []
+    for i in url:
+        if type(i) is list:
+            for item in i:
+                result.append(item)
+        else:
+            result.append(i)
+    return result
 
+
+def __format_image_url(url):
+    if isinstance(url, list):
+        return [__format_image_url(i) for i in url]
     if url.startswith('//'):
         url = 'https:{}'.format(url)
     return url

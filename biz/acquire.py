@@ -5,7 +5,7 @@ from wechatsogou.request import WechatSogouRequest
 import time
 
 
-def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0):
+def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page=0):
     articles = []
     # images = {}
     # index = 0
@@ -13,9 +13,9 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0):
     while True:
         count = 0
         # results = ws_api.search_article(keyword, page, article_type=WechatSogouConst.search_article_type.image)
-        results = ws_api.search_article(keyword, page)
+        results = ws_api.search_article(keyword, page if specified_page <= 0 else specified_page)
         for r in results:
-            time.sleep(5)
+            # time.sleep(5)
             article = Article()
             article.title = r['article']['title']
             article.url = r['article']['url']
@@ -23,28 +23,28 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0):
             article.profile_url = r['gzh']['profile_url']
             article.wechat_name = r['gzh']['wechat_name']
             article.isv = r['gzh']['isv']
-            articles.append(article)
+            if count == 6:
+                print('aritcle.imgs={}'.format(r['article']['imgs']))
             for img in r['article']['imgs']:
                 article.imgs.append(img)
-                # if img not in images:
-                #     images[img] = [index]
-                # else:
-                #     images[img].append(index)
-            # index += 1
             if len(article.url) > 0:
+                print('get_article_content with title={}'.format(article.title))
                 c = ws_api.get_article_content(article.url)
-                if c is not None:
+                if c is not None and '该内容已被发布者删除' not in c['content_html']:
                     for item in c['content_img_list']:
                         article.imgs.append(item)
+                else:
+                    continue
+            articles.append(article)
             count += 1
-        if count == 0 or (0 < page_limit <= page):
-            print('search result is empty in page {}'.format(page))
+        if count == 0 or (0 < page_limit <= page) or specified_page > 0:
+            print('search end at page {}'.format(page))
             break
         page += 1
     for a in articles:
         if len(a.profile_url) > 0:
-            time.sleep(5)
-            print('title={}, profile_url={}'.format(a.title, a.profile_url))
+            # time.sleep(5)
+            # print('title={}, profile_url={}'.format(a.title, a.profile_url))
             result = ws_api.get_gzh_detail(a.profile_url)
             a.gzh.avatar = result['avatar']
             a.gzh.wechat_id = result['wechat_id'].removeprefix('微信号: ')

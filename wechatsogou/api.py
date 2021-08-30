@@ -119,6 +119,7 @@ class WechatSogouAPI(object):
         resp = self.__get(url, session, headers=headers)
         resp.encoding = 'utf-8'
         if 'antispider' in resp.url or '请输入验证码' in resp.text:
+            print("before unlock_platform, url={}".format(resp.url))
             for i in range(self.captcha_break_times):
                 try:
                     unlock_platform(url=url, resp=resp, session=session, unlock_callback=unlock_callback, identify_image_callback=identify_image_callback)
@@ -128,16 +129,22 @@ class WechatSogouAPI(object):
                         raise WechatSogouVcodeOcrException(e)
                     # else:
                     #     time.sleep(0.05)
-
-            if '请输入验证码' in resp.text:
-                resp = session.get(url)
-                resp.encoding = 'utf-8'
-            else:
+            time.sleep(1)
+            # if '请输入验证码' in resp.text:
+            #     resp = session.get(url)
+            #     resp.encoding = 'utf-8'
+            # else:
+            if 'antispider' in resp.url:
                 headers = self.__set_cookie(referer=referer)
-                headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; WOW64)'
+                # headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; WOW64)'
                 resp = self.__get(url, session, headers)
                 resp.encoding = 'utf-8'
-
+            else:
+                resp = session.get(url)
+                resp.encoding = 'utf-8'
+            print("after unlock_platform, url={}".format(resp.url))
+            if '请输入验证码' in resp.text:
+                print('*******what the fuck?******')
         return resp
 
     def __hosting_wechat_img(self, content_info, hosting_callback):
@@ -550,6 +557,7 @@ class WechatSogouAPI(object):
             return resp.text
         content_info = WechatSogouStructuring.get_article_detail(resp.text, del_qqmusic=del_qqmusic,
                                                                  del_voice=del_mpvoice)
+        print('get_article_content({}), content_info.img_list={}'.format(url, content_info['content_img_list'] if content_info is not None else 'None'))
         if hosting_callback and content_info is not None:
             content_info = self.__hosting_wechat_img(content_info, hosting_callback)
         return content_info

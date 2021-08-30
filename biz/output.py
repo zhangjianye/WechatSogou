@@ -5,6 +5,7 @@ from io import BytesIO
 from urllib.request import urlopen
 import os
 import datetime
+import traceback
 
 
 def output_excel(articles: [Article], filename, sheet_name):
@@ -12,48 +13,81 @@ def output_excel(articles: [Article], filename, sheet_name):
     workbook = Workbook(filename)
     sheet = workbook.add_worksheet(sheet_name)
     __prepare_header(sheet)
-    __write_content(sheet, articles)
+    __write_content(sheet, workbook, articles)
     workbook.close()
 
 
 def __prepare_header(sheet: Worksheet):
-    headers = ['图片URL', '标题', '发布时间', '微信名称', '是否加V', '微信号', '功能介绍', '账号主体', '二维码']
+    headers = ['编号', '图片URL', '标题', '发布时间', '微信名称', '是否加V', '微信号', '功能介绍', '账号主体', '二维码']
     for i, h in enumerate(headers):
         sheet.write(0, i, h)
 
 
-def __write_content(sheet: Worksheet, articles: [Article]):
-    sheet.set_default_row(51)
+def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article]):
+    # sheet.set_default_row(51)
+    merge_format = workbook.add_format({'align': 'left', 'valign': 'vcenter'})
     row = 1
     for article in articles:
-        # __write_image_by_url(sheet, row, 0, url)
-        urls = '\n'.join(article.imgs)
-        sheet.write(row, 0, urls)
-        sheet.write(row, 1, article.title)
-        sheet.write(row, 2, datetime.datetime.fromtimestamp(article.time).strftime('%Y-%m-%d %H:%M:%S'))
-        sheet.write(row, 3, article.wechat_name)
-        sheet.write(row, 4, '是' if article.isv == 1 else '否')
-        gzh: Account = article.gzh
-        sheet.write(row, 5, gzh.wechat_id)
-        sheet.write(row, 6, gzh.desc)
-        sheet.write(row, 7, gzh.principal)
-        print('qr_code={}'.format(gzh.qr_code))
-        if len(gzh.qr_code) > 0:
-            __write_image_by_url(sheet, row, 8, gzh.qr_code)
-        row += 1
-    sheet.set_column(0, 0, 100)
-    sheet.set_column(1, 1, 50)
-    sheet.set_column(2, 3, 15)
-    sheet.set_column(4, 4, 8)
-    sheet.set_column(5, 5, 20)
-    sheet.set_column(6, 6, 100)
-    sheet.set_column(7, 7, 50)
-    sheet.set_column(8, 8, 51)
+        first_row = row
+        col = 0
+        try:
+            # __write_image_by_url(sheet, row, 0, url)
+            for index, img in enumerate(article.imgs):
+                sheet.write(row, col, index + 1)
+                sheet.write(row, col + 1, img)
+                row += 1
+            last_row = row - 1
+            col += 2
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, article.title, merge_format)
+            col += 1
+            # sheet.write(first_row, 1, article.title)
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, datetime.datetime.fromtimestamp(article.time).strftime('%Y-%m-%d %H:%M:%S'), merge_format)
+            col += 1
+            # sheet.write(first_row, 2, datetime.datetime.fromtimestamp(article.time).strftime('%Y-%m-%d %H:%M:%S'))
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, article.wechat_name, merge_format)
+            col += 1
+            # sheet.write(first_row, 3, article.wechat_name)
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, '是' if article.isv == 1 else '否', merge_format)
+            col += 1
+            # sheet.write(first_row, 4, '是' if article.isv == 1 else '否')
+            gzh: Account = article.gzh
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.wechat_id, merge_format)
+            col += 1
+            # sheet.write(first_row, 5, gzh.wechat_id)
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.desc, merge_format)
+            col += 1
+            # sheet.write(first_row, 6, gzh.desc)
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.principal, merge_format)
+            col += 1
+            # sheet.write(first_row, 7, gzh.principal)
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, None, merge_format)
+            print('qr_code={}'.format(gzh.qr_code))
+            if len(gzh.qr_code) > 0:
+                __write_image_by_url(sheet, first_row, col, gzh.qr_code)
+        except Exception as e:
+            print('exception occured, e={}, article={}, imgs={}'.format(e, article, article.imgs))
+            print(traceback.print_exc())
+        # row += 1
+    sheet.set_column(1, 1, 100)
+    sheet.set_column(2, 2, 50)
+    sheet.set_column(3, 4, 18)
+    sheet.set_column(5, 5, 8)
+    sheet.set_column(6, 6, 20)
+    sheet.set_column(7, 7, 100)
+    sheet.set_column(8, 8, 50)
+    sheet.set_column_pixels(9, 9, 105)
+    sheet.freeze_panes(1, 0)
+
+def __write_maybe_merged_cell(sheet:Worksheet, first_row, first_col, last_row, last_col, data, format):
+    if first_col != last_col or first_row != last_row:
+        sheet.merge_range(first_row, first_col, last_row, last_col, data, format)
+    else:
+        sheet.write(first_row, first_col, data, format)
 
 
 def __write_image_by_url(sheet: Worksheet, row, col, url):
     image_data = BytesIO(urlopen(url).read())
-    sheet.insert_image(row, col, url, {'image_data': image_data, 'x_scale': 0.5, 'y_scale': 0.5})
+    sheet.insert_image(row, col, url, {'image_data': image_data, 'x_scale': 0.25, 'y_scale': 0.25})
 
 
 def __get_validated_filename(filename: str):

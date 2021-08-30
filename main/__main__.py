@@ -10,6 +10,6 @@ def main():
     hot_index = WechatSogouConst.hot_index.hot
     # search_list(ws_api, hot_index, 1)
     keyword = input('Enter keyword:')
-    articles = acquire.search_article(ws_api, keyword, 1)
+    articles = acquire.search_article(ws_api, keyword, specified_page=4)
     output.output_excel(articles, 'test', keyword)
     # output.output_excel(None, None, 'test', keyword)
