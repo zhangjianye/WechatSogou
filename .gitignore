@@ -23,4 +23,6 @@ t.py
 y.py
 tencent_captcha/
 docs/src/node_modules/
-*.xlsx
+bin/*.xlsx
+bin/*.jpeg
+bin/*.json

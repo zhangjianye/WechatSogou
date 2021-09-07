@@ -10,6 +10,8 @@ from wechatsogou.five import readimg, input
 from wechatsogou.filecache import WechatCache
 from wechatsogou.exceptions import WechatSogouVcodeOcrException
 
+from utilities import unlock
+
 ws_cache = WechatCache()
 
 
@@ -29,6 +31,12 @@ def identify_image_callback_by_hand(img):
     im = readimg(img)
     im.show()
     return input("please input code: ")
+
+
+def identify_image_callback_automatically(img):
+    result = unlock.image_identify(img)
+    print('image identified, result:{}'.format(result))
+    return result
 
 
 def unlock_sogou_callback_example(url, req, resp, img, identify_image_callback):
@@ -58,8 +66,9 @@ def unlock_sogou_callback_example(url, req, resp, img, identify_image_callback):
     # no use resp
     url_quote = url.split('weixin.sogou.com/')[-1]
     unlock_url = 'http://weixin.sogou.com/antispider/thank.php'
+    c = identify_image_callback(img)
     data = {
-        'c': identify_image_callback(img),
+        'c': c,
         'r': '%2F' + url_quote,
         'v': 5
     }
@@ -73,7 +82,7 @@ def unlock_sogou_callback_example(url, req, resp, img, identify_image_callback):
         raise WechatSogouVcodeOcrException(
             'unlock[{}] failed: {}'.format(unlock_url, r_unlock.text, r_unlock.status_code))
 
-    return r_unlock.json()
+    return r_unlock.json(), c
 
 
 def unlock_weixin_callback_example(url, req, resp, img, identify_image_callback):
@@ -104,9 +113,10 @@ def unlock_weixin_callback_example(url, req, resp, img, identify_image_callback)
     # no use resp
 
     unlock_url = 'https://mp.weixin.qq.com/mp/verifycode'
+    c = identify_image_callback(img)
     data = {
         'cert': time.time() * 1000,
-        'input': identify_image_callback(img)
+        'input': c
     }
     headers = {
         'Host': 'mp.weixin.qq.com',
@@ -118,4 +128,4 @@ def unlock_weixin_callback_example(url, req, resp, img, identify_image_callback)
         raise WechatSogouVcodeOcrException(
             'unlock[{}] failed: {}[{}]'.format(unlock_url, r_unlock.text, r_unlock.status_code))
 
-    return r_unlock.json()
+    return r_unlock.json(), c

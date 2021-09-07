@@ -9,11 +9,11 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
     articles = []
     # images = {}
     # index = 0
-    page = 1
+    page = 1 if specified_page <= 0 else specified_page
     while True:
         count = 0
         # results = ws_api.search_article(keyword, page, article_type=WechatSogouConst.search_article_type.image)
-        results = ws_api.search_article(keyword, page if specified_page <= 0 else specified_page)
+        results = ws_api.search_article(keyword, page)
         for r in results:
             # time.sleep(5)
             article = Article()

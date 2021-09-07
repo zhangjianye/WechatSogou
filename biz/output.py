@@ -8,25 +8,42 @@ import datetime
 import traceback
 
 
-def output_excel(articles: [Article], filename, sheet_name):
+def prepare_excel(filename, sheet_name):
     filename = __get_validated_filename(filename)
     workbook = Workbook(filename)
     sheet = workbook.add_worksheet(sheet_name)
     __prepare_header(sheet)
-    __write_content(sheet, workbook, articles)
+    return workbook, sheet
+
+
+def close_excel(workbook: Workbook):
     workbook.close()
+
+
+def output_excel(workbook: Workbook, sheet: Worksheet, articles: [Article], start_row=0) -> int:
+    next_start_row = __write_content(sheet, workbook, articles, start_row)
+    return next_start_row
 
 
 def __prepare_header(sheet: Worksheet):
     headers = ['编号', '图片URL', '标题', '发布时间', '微信名称', '是否加V', '微信号', '功能介绍', '账号主体', '二维码']
     for i, h in enumerate(headers):
         sheet.write(0, i, h)
+    sheet.set_column(1, 1, 100)
+    sheet.set_column(2, 2, 50)
+    sheet.set_column(3, 4, 18)
+    sheet.set_column(5, 5, 8)
+    sheet.set_column(6, 6, 20)
+    sheet.set_column(7, 7, 100)
+    sheet.set_column(8, 8, 50)
+    sheet.set_column_pixels(9, 9, 105)
+    sheet.freeze_panes(1, 0)
 
 
-def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article]):
+def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article], start_row) -> int:
     # sheet.set_default_row(51)
     merge_format = workbook.add_format({'align': 'left', 'valign': 'vcenter'})
-    row = 1
+    row = start_row
     for article in articles:
         first_row = row
         col = 0
@@ -68,15 +85,7 @@ def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article]):
             print('exception occured, e={}, article={}, imgs={}'.format(e, article, article.imgs))
             print(traceback.print_exc())
         # row += 1
-    sheet.set_column(1, 1, 100)
-    sheet.set_column(2, 2, 50)
-    sheet.set_column(3, 4, 18)
-    sheet.set_column(5, 5, 8)
-    sheet.set_column(6, 6, 20)
-    sheet.set_column(7, 7, 100)
-    sheet.set_column(8, 8, 50)
-    sheet.set_column_pixels(9, 9, 105)
-    sheet.freeze_panes(1, 0)
+    return row
 
 def __write_maybe_merged_cell(sheet:Worksheet, first_row, first_col, last_row, last_col, data, format):
     if first_col != last_col or first_row != last_row:

@@ -475,13 +475,19 @@ class WechatSogouStructuring(object):
         if del_qqmusic:
             qqmusic = content_text.find_all('qqmusic') or []
             for music in qqmusic:
-                music.parent.decompose()
+                if music.parent:
+                    music.parent.decompose()
+                else:
+                    music.decompose()
 
         if del_voice:
             # voice是一个p标签下的mpvoice标签以及class为'js_audio_frame db'的span构成，所以将父标签删除
             voices = content_text.find_all('mpvoice') or []
             for voice in voices:
-                voice.parent.decompose()
+                if voice.parent:
+                    voice.parent.decompose()
+                else:
+                    voice.decompose()
 
         # 3. 获取所有的图片 [img标签，和style中的background-image]
         all_img_set = set()
@@ -511,12 +517,12 @@ class WechatSogouStructuring(object):
             all_img_set.add(img_url[0])
 
         # 4. 处理iframe
-        all_img_element = content_text.find_all('iframe') or []
-        for ele in all_img_element:
-            # 删除部分属性
-            img_url = ele.attrs['data-src']
-            del ele.attrs['data-src']
-            ele.attrs['src'] = img_url
+        # all_img_element = content_text.find_all('iframe') or []
+        # for ele in all_img_element:
+        #     # 删除部分属性
+        #     img_url = ele.attrs['data-src']
+        #     del ele.attrs['data-src']
+        #     ele.attrs['src'] = img_url
 
         # 5. 返回数据
         all_img_list = list(all_img_set)
@@ -564,3 +570,11 @@ class WechatSogouStructuring(object):
             'principal': profile_principal,
             'qr_code': profile_qr_code
         }
+
+    @staticmethod
+    def is_login(text):
+        page = etree.HTML(text)
+        login_item = get_first_of_element(page, '//div[1]/div/a[@class="yh"]')
+        if login_item:
+            return True
+        return False
