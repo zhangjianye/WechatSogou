@@ -547,6 +547,7 @@ class WechatSogouStructuring(object):
         -------
         dict
         {
+            'name': str, #名称
             'avatar': str,  # 头像
             'wechat_id': str,  # 微信号
             'desc': str,  # 功能介绍
@@ -555,6 +556,7 @@ class WechatSogouStructuring(object):
         }
         """
         page = etree.HTML(text)
+        profile_name = get_elem_text(get_first_of_element(page, '//strong[@class="profile_nickname"]'))
         profile_info = get_first_of_element(page, '//div[@class="page_profile_info"]')
         profile_area = get_first_of_element(profile_info, 'div[1]/div[@class="profile_info_area"]')
         profile_avatar = get_first_of_element(profile_area, 'div[1]/span/img/@src')
@@ -564,6 +566,7 @@ class WechatSogouStructuring(object):
         profile_principal = get_first_of_element(profile_area, 'ul/li[2]/div/text()')
         profile_qr_code = get_first_of_element(profile_info, 'div[2]/div/div/img/@src')
         return {
+            'name': profile_name,
             'avatar': profile_avatar,
             'wechat_id': profile_wechat_id,
             'desc': profile_desc,

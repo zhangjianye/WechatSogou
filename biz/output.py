@@ -26,17 +26,17 @@ def output_excel(workbook: Workbook, sheet: Worksheet, articles: [Article], star
 
 
 def __prepare_header(sheet: Worksheet):
-    headers = ['编号', '图片URL', '标题', '发布时间', '微信名称', '是否加V', '微信号', '功能介绍', '账号主体', '二维码']
+    headers = ['编号', '图片URL', '标题', '发布时间', '公众号名称', '公众号正式名称', '是否加V', '微信号', '账号主体', '功能介绍', '二维码']
     for i, h in enumerate(headers):
         sheet.write(0, i, h)
     sheet.set_column(1, 1, 100)
     sheet.set_column(2, 2, 50)
-    sheet.set_column(3, 4, 18)
-    sheet.set_column(5, 5, 8)
-    sheet.set_column(6, 6, 20)
-    sheet.set_column(7, 7, 100)
+    sheet.set_column(3, 5, 18)
+    sheet.set_column(6, 6, 8)
+    sheet.set_column(7, 7, 20)
     sheet.set_column(8, 8, 50)
-    sheet.set_column_pixels(9, 9, 105)
+    sheet.set_column(9, 9, 100)
+    sheet.set_column_pixels(10, 10, 105)
     sheet.freeze_panes(1, 0)
 
 
@@ -63,6 +63,8 @@ def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article], s
             # sheet.write(first_row, 2, datetime.datetime.fromtimestamp(article.time).strftime('%Y-%m-%d %H:%M:%S'))
             __write_maybe_merged_cell(sheet, first_row, col, last_row, col, article.wechat_name, merge_format)
             col += 1
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, article.gzh.name, merge_format)
+            col += 1
             # sheet.write(first_row, 3, article.wechat_name)
             __write_maybe_merged_cell(sheet, first_row, col, last_row, col, '是' if article.isv == 1 else '否', merge_format)
             col += 1
@@ -71,12 +73,12 @@ def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article], s
             __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.wechat_id, merge_format)
             col += 1
             # sheet.write(first_row, 5, gzh.wechat_id)
-            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.desc, merge_format)
-            col += 1
-            # sheet.write(first_row, 6, gzh.desc)
             __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.principal, merge_format)
             col += 1
             # sheet.write(first_row, 7, gzh.principal)
+            __write_maybe_merged_cell(sheet, first_row, col, last_row, col, gzh.desc, merge_format)
+            col += 1
+            # sheet.write(first_row, 6, gzh.desc)
             __write_maybe_merged_cell(sheet, first_row, col, last_row, col, None, merge_format)
             print('qr_code={}'.format(gzh.qr_code))
             if len(gzh.qr_code) > 0:

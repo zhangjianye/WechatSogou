@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Account:
+    name = ''
     avatar = ''
     principal = ''
     wechat_id = ''
@@ -10,7 +11,7 @@ class Account:
     qr_code = ''
 
     def __repr__(self):
-        return 'principal=\'{}\', wechat_id=\'{}\', desc=\'{}\''.format(self.principal, self.wechat_id, self.desc)
+        return 'name=\'{}\', principal=\'{}\', wechat_id=\'{}\', desc=\'{}\''.format(self.name, self.principal, self.wechat_id, self.desc)
 
 
 @dataclass

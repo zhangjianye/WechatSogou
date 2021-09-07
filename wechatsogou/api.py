@@ -11,7 +11,8 @@ import time
 import requests
 
 from wechatsogou.const import agents, WechatSogouConst
-from wechatsogou.exceptions import WechatSogouException, WechatSogouRequestsException, WechatSogouVcodeOcrException
+from wechatsogou.exceptions import WechatSogouException, WechatSogouRequestsException, WechatSogouVcodeOcrException, \
+    WechatSogouVcodeOcrLimitedException
 from wechatsogou.five import must_str, quote
 from wechatsogou.identify_image import (identify_image_callback_by_hand, identify_image_callback_automatically,
                                         unlock_sogou_callback_example, unlock_weixin_callback_example, ws_cache)
@@ -209,6 +210,7 @@ class WechatSogouAPI(object):
 
         if r_unlock['code'] != 0:
             self.__write_failed_verified_image(code, r_captcha.content)
+            print(r_unlock)
             raise WechatSogouVcodeOcrException(
                 '[WechatSogouAPI identify image] code: {code}, msg: {msg}'.format(code=r_unlock.get('code'),
                                                                                   msg=r_unlock.get('msg')))
@@ -222,14 +224,24 @@ class WechatSogouAPI(object):
         r_captcha = session.get('https://mp.weixin.qq.com/mp/verifycode?cert={}'.format(time.time() * 1000))
         if not r_captcha.ok:
             raise WechatSogouRequestsException('WechatSogouAPI unlock_history get img', resp)
-        time.sleep(3)
+
+        time.sleep(int(random.random() * 5 * 100) / 100)
         r_unlock, code = unlock_callback(url, session, resp, r_captcha.content, identify_image_callback)
 
-        if r_unlock['ret'] != 0:
+        ret = r_unlock['ret']
+        if ret != 0:
             self.__write_failed_verified_image(code, r_captcha.content)
-            raise WechatSogouVcodeOcrException(
-                '[WechatSogouAPI identify image] code: {ret}, msg: {errmsg}, cookie_count: {cookie_count}'.format(
-                    ret=r_unlock.get('ret'), errmsg=r_unlock.get('errmsg'), cookie_count=r_unlock.get('cookie_count')))
+            print(r_unlock)
+            if ret == -6:
+                raise WechatSogouVcodeOcrLimitedException(
+                    '[WechatSogouAPI identify image] code: {ret}, msg: {errmsg}, cookie_count: {cookie_count}'.format(
+                        ret=r_unlock.get('ret'), errmsg=r_unlock.get('errmsg'),
+                        cookie_count=r_unlock.get('cookie_count')))
+            else:
+                raise WechatSogouVcodeOcrException(
+                    '[WechatSogouAPI identify image] code: {ret}, msg: {errmsg}, cookie_count: {cookie_count}'.format(
+                        ret=r_unlock.get('ret'), errmsg=r_unlock.get('errmsg'),
+                        cookie_count=r_unlock.get('cookie_count')))
 
     @staticmethod
     def __write_failed_verified_image(code, content):
@@ -262,22 +274,24 @@ class WechatSogouAPI(object):
             print("before unlock_platform, url={}".format(resp.url))
             i = 0
             manual = False
-            while i < self.captcha_break_times:
+            while manual or i < self.captcha_break_times:
                 try:
                     unlock_platform(url=url, resp=resp, session=session, unlock_callback=unlock_callback,
                                     identify_image_callback=identify_image_callback)
                     break
+                except WechatSogouVcodeOcrLimitedException as e:
+                    raise e
                 except (WechatSogouVcodeOcrException, WechatSogouRequestsException) as e:
                     if i == self.captcha_break_times - 1:
-                        if not manual:
-                            manual = True
-                            i = 0
-                            identify_image_callback = identify_image_callback_by_hand
-                        else:
-                            raise WechatSogouVcodeOcrException(e)
+                        # if not manual:
+                        #     manual = True
+                        #     i = -1
+                        #     identify_image_callback = identify_image_callback_by_hand
+                        # else:
+                        raise WechatSogouVcodeOcrException(e)
                 i += 1
-                    # else:
-                    #     time.sleep(0.05)
+                # else:
+                #     time.sleep(0.05)
             time.sleep(1)
             # if '请输入验证码' in resp.text:
             #     resp = session.get(url)
@@ -524,7 +538,8 @@ class WechatSogouAPI(object):
         print('search_article, url={}'.format(url))
         while True:
             session = self.__get_session()
-            resp = self.__get_by_unlock(url, WechatSogouRequest.gen_search_article_url(keyword, article_type=article_type),
+            resp = self.__get_by_unlock(url,
+                                        WechatSogouRequest.gen_search_article_url(keyword, article_type=article_type),
                                         unlock_platform=self.__unlock_sogou,
                                         unlock_callback=unlock_callback,
                                         identify_image_callback=identify_image_callback,
@@ -777,6 +792,7 @@ class WechatSogouAPI(object):
         -------
         dict
         {
+            'name': str, # 名称
             'avatar': str,  # 头像
             'wechat_id': str,  # 微信号
             'desc': str,  # 功能介绍
