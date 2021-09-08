@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import, print_function, unicode_literals
+
+import selenium.common.exceptions
 from selenium import webdriver
 import json
 import math
@@ -24,7 +26,7 @@ import os
 
 
 class WechatSogouAPI(object):
-    def __init__(self, captcha_break_time=1, headers=None, cookie_path='', cookies=None, **kwargs):
+    def __init__(self, captcha_break_time=1, headers=None, cookie_path='', cookies=None, keyword='', **kwargs):
         """初始化参数
 
         Parameters
@@ -52,6 +54,9 @@ class WechatSogouAPI(object):
         else:
             self.headers = {'User-Agent': random.choice(agents)}
         self.session = None
+        self.keyword = keyword
+        if len(self.keyword) == 0:
+            self.keyword = '百度'
         self.wechat_login()
 
     def reset_session(self):
@@ -71,6 +76,10 @@ class WechatSogouAPI(object):
         driver = webdriver.Chrome()
         driver.get("https://weixin.sogou.com/")
         time.sleep(2)
+        user_agent = driver.execute_script("return navigator.userAgent;")
+        print('user-agent:{}'.format(user_agent))
+        # if user_agent:
+        #     self.headers['User-Agent'] = user_agent
         login_button = driver.find_element_by_id('loginBtn')
         if login_button:
             login_button.click()
@@ -88,11 +97,29 @@ class WechatSogouAPI(object):
         count = 0
         while True:
             time.sleep(3)
-            login_yes = driver.find_element_by_id('login_yes')
-            if login_yes:
-                if login_yes.is_displayed():
-                    print("登录成功")
-                    break
+            try:
+                login_yes = driver.find_element_by_id('login_yes')
+                if login_yes:
+                    if login_yes.is_displayed():
+                        print("登录成功")
+                        break
+                    else:
+                        continue
+            except selenium.common.exceptions.WebDriverException:
+                continue
+
+            # try:
+            #     time.sleep(2)
+            #     query = driver.find_element_by_id('query')
+            #     commit = driver.find_element_by_xpath('//input[@uigs="search_article"]')
+            #     if query and commit:
+            #         query.send_keys(self.keyword)
+            #         commit.click()
+            #         break
+            #
+            # except selenium.common.exceptions.WebDriverException:
+            #     pass
+
             # count += 1
             # if count >= 5:
             #     print("可能登录成功")
@@ -160,14 +187,14 @@ class WechatSogouAPI(object):
             print('cookies is empty')
             _headers['Cookie'] = 'SUV={};SNUID={};'.format(suv, snuid)
         else:
-            print('cookies is not empty')
+            # print('cookies is not empty')
             cookies = self.__get_cookie()
-            print(cookies)
+            # print(cookies)
             _headers['Cookie'] = cookies
         if referer is not None:
             _headers['Referer'] = referer
-        print('headers:')
-        print(_headers)
+        # print('headers:')
+        # print(_headers)
         return _headers
 
     def __get_session(self):
@@ -225,7 +252,6 @@ class WechatSogouAPI(object):
         if not r_captcha.ok:
             raise WechatSogouRequestsException('WechatSogouAPI unlock_history get img', resp)
 
-        time.sleep(int(random.random() * 5 * 100) / 100)
         r_unlock, code = unlock_callback(url, session, resp, r_captcha.content, identify_image_callback)
 
         ret = r_unlock['ret']
@@ -256,58 +282,61 @@ class WechatSogouAPI(object):
             identify_image_callback = identify_image_callback_automatically
         assert unlock_callback is None or callable(unlock_callback)
         assert callable(identify_image_callback)
-
-        if not session:
-            session = requests.session()
-        headers = self.__set_cookie(referer=referer)
-        resp = self.__get(url, session, headers=headers)
-        # print('Set-Cookie:')
-        # print(resp.headers['Set-Cookie'])
-        print('session.cookies.SNUID={}'.format(session.cookies.get('SNUID')))
-        print('resp.cookies.SNUID={}'.format(resp.cookies.get('SNUID')))
-        snuid = session.cookies.get('SNUID')
-        if snuid:
-            self.__redact_cookie('SNUID', snuid)
-        self.__get_jsessionid(resp.url)
-        resp.encoding = 'utf-8'
-        if 'antispider' in resp.url or '请输入验证码' in resp.text:
-            print("before unlock_platform, url={}".format(resp.url))
-            i = 0
-            manual = False
-            while manual or i < self.captcha_break_times:
-                try:
-                    unlock_platform(url=url, resp=resp, session=session, unlock_callback=unlock_callback,
-                                    identify_image_callback=identify_image_callback)
-                    break
-                except WechatSogouVcodeOcrLimitedException as e:
-                    raise e
-                except (WechatSogouVcodeOcrException, WechatSogouRequestsException) as e:
-                    if i == self.captcha_break_times - 1:
-                        # if not manual:
-                        #     manual = True
-                        #     i = -1
-                        #     identify_image_callback = identify_image_callback_by_hand
-                        # else:
-                        raise WechatSogouVcodeOcrException(e)
-                i += 1
+        while True:
+            if not session:
+                session = requests.session()
+            headers = self.__set_cookie(referer=referer)
+            resp = self.__get(url, session, headers=headers)
+            # print('Set-Cookie:')
+            # print(resp.headers['Set-Cookie'])
+            # print('session.cookies.SNUID={}'.format(session.cookies.get('SNUID')))
+            # print('resp.cookies.SNUID={}'.format(resp.cookies.get('SNUID')))
+            snuid = session.cookies.get('SNUID')
+            if snuid:
+                self.__redact_cookie('SNUID', snuid)
+            self.__get_jsessionid(resp.url)
+            resp.encoding = 'utf-8'
+            if 'antispider' in resp.url or '请输入验证码' in resp.text:
+                print("before unlock_platform, url={}".format(resp.url))
+                print('resp.txt={}'.format(resp.text))
+                i = 0
+                manual = False
+                while manual or i < self.captcha_break_times:
+                    try:
+                        unlock_platform(url=url, resp=resp, session=session, unlock_callback=unlock_callback,
+                                        identify_image_callback=identify_image_callback)
+                        break
+                    except WechatSogouVcodeOcrLimitedException as e:
+                        raise e
+                    except (WechatSogouVcodeOcrException, WechatSogouRequestsException) as e:
+                        if i == self.captcha_break_times - 1:
+                            # if not manual:
+                            #     manual = True
+                            #     i = -1
+                            #     identify_image_callback = identify_image_callback_by_hand
+                            # else:
+                            raise WechatSogouVcodeOcrException(e)
+                    i += 1
+                    # else:
+                    #     time.sleep(0.05)
+                time.sleep(1)
+                # if '请输入验证码' in resp.text:
+                #     resp = session.get(url)
+                #     resp.encoding = 'utf-8'
                 # else:
-                #     time.sleep(0.05)
-            time.sleep(1)
-            # if '请输入验证码' in resp.text:
-            #     resp = session.get(url)
-            #     resp.encoding = 'utf-8'
-            # else:
-            if 'antispider' in resp.url:
-                headers = self.__set_cookie(referer=referer)
-                # headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; WOW64)'
-                resp = self.__get(url, session, headers)
-                resp.encoding = 'utf-8'
-            else:
-                resp = session.get(url)
-                resp.encoding = 'utf-8'
-            print("after unlock_platform, url={}".format(resp.url))
-            if '请输入验证码' in resp.text:
-                print('*******what the fuck?******')
+                if 'antispider' in resp.url:
+                    headers = self.__set_cookie(referer=referer)
+                    # headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 6.1; WOW64)'
+                    resp = self.__get(url, session, headers)
+                    resp.encoding = 'utf-8'
+                else:
+                    resp = session.get(url)
+                    resp.encoding = 'utf-8'
+                print("after unlock_platform, url={}".format(resp.url))
+                if '请输入验证码' in resp.text:
+                    print('*******what the fuck, now retry******')
+                else:
+                    break
         return resp
 
     def __hosting_wechat_img(self, content_info, hosting_callback):
@@ -545,7 +574,7 @@ class WechatSogouAPI(object):
                                         identify_image_callback=identify_image_callback,
                                         session=session)
             if not WechatSogouStructuring.is_login(resp.text):
-                print('session not login, response text:{}'.format(resp.text))
+                # print('session not login, response text:{}'.format(resp.text))
                 self.reset_session()
             else:
                 break
@@ -553,8 +582,8 @@ class WechatSogouAPI(object):
         article_list = WechatSogouStructuring.get_article_by_search(resp.text)
         for i in article_list:
             if decode_url:
-                print('article in result of search_article, before format, url={}, profile_url={}'.format(
-                    i['article']['url'], i['gzh']['profile_url']))
+                # print('article in result of search_article, before format, url={}, profile_url={}'.format(
+                #     i['article']['url'], i['gzh']['profile_url']))
                 i['article']['url'] = self.__format_url(i['article']['url'], url, resp.text,
                                                         unlock_callback=unlock_callback,
                                                         identify_image_callback=identify_image_callback,
@@ -563,8 +592,8 @@ class WechatSogouAPI(object):
                                                             unlock_callback=unlock_callback,
                                                             identify_image_callback=identify_image_callback,
                                                             session=session)
-                print('article in result of search_article, after format, url={}, profile_url={}'.format(
-                    i['article']['url'], i['gzh']['profile_url']))
+                # print('article in result of search_article, after format, url={}, profile_url={}'.format(
+                #     i['article']['url'], i['gzh']['profile_url']))
             yield i
 
     def get_gzh_article_by_history(self, keyword=None, url=None,
@@ -736,8 +765,8 @@ class WechatSogouAPI(object):
             return resp.text
         content_info = WechatSogouStructuring.get_article_detail(resp.text, del_qqmusic=del_qqmusic,
                                                                  del_voice=del_mpvoice)
-        print('get_article_content({}), content_info.img_list={}'.format(url, content_info[
-            'content_img_list'] if content_info is not None else 'None'))
+        # print('get_article_content({}), content_info.img_list={}'.format(url, content_info[
+        #     'content_img_list'] if content_info is not None else 'None'))
         if hosting_callback and content_info is not None:
             content_info = self.__hosting_wechat_img(content_info, hosting_callback)
         return content_info

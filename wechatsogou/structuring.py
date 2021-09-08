@@ -500,7 +500,8 @@ class WechatSogouStructuring(object):
             ele.attrs['src'] = img_url
 
             if not img_url.startswith('http'):
-                raise WechatSogouException('img_url [{}] 不合法'.format(img_url))
+                continue
+                # raise WechatSogouException('img_url [{}] 不合法'.format(img_url))
             all_img_set.add(img_url)
 
         backgroud_image = content_text.find_all(style=re.compile("background-image")) or []
@@ -526,11 +527,12 @@ class WechatSogouStructuring(object):
 
         # 5. 返回数据
         all_img_list = list(all_img_set)
-        content_html = content_text.prettify()
-        # 去除div[id=js_content]
-        content_html = re.findall(js_content, content_html)[0][0]
+
+        # content_html = content_text.prettify()
+        # # 去除div[id=js_content]
+        # content_html = re.findall(js_content, content_html)[0][0]
         return {
-            'content_html': content_html,
+            # 'content_html': content_html,
             'content_img_list': all_img_list
         }
 
@@ -558,22 +560,31 @@ class WechatSogouStructuring(object):
         page = etree.HTML(text)
         profile_name = get_elem_text(get_first_of_element(page, '//strong[@class="profile_nickname"]'))
         profile_info = get_first_of_element(page, '//div[@class="page_profile_info"]')
-        profile_area = get_first_of_element(profile_info, 'div[1]/div[@class="profile_info_area"]')
-        profile_avatar = get_first_of_element(profile_area, 'div[1]/span/img/@src')
-        profile_wechat_id = get_first_of_element(profile_area, 'div[1]/div/p/text()')
-        profile_wechat_id.removeprefix('微信号: ')
-        profile_desc = get_first_of_element(profile_area, 'ul/li[1]/div/text()')
-        profile_principal = get_first_of_element(profile_area, 'ul/li[2]/div/text()')
-        profile_qr_code = get_first_of_element(profile_info, 'div[2]/div/div/img/@src')
+        if profile_info:
+            profile_area = get_first_of_element(profile_info, 'div[1]/div[@class="profile_info_area"]')
+            if profile_area:
+                profile_avatar = get_first_of_element(profile_area, 'div[1]/span/img/@src')
+                profile_wechat_id = get_first_of_element(profile_area, 'div[1]/div/p/text()')
+                profile_wechat_id.removeprefix('微信号: ')
+                profile_desc = get_first_of_element(profile_area, 'ul/li[1]/div/text()')
+                profile_principal = get_first_of_element(profile_area, 'ul/li[2]/div/text()')
+                profile_qr_code = get_first_of_element(profile_info, 'div[2]/div/div/img/@src')
+                return {
+                    'name': profile_name,
+                    'avatar': profile_avatar,
+                    'wechat_id': profile_wechat_id,
+                    'desc': profile_desc,
+                    'principal': profile_principal,
+                    'qr_code': profile_qr_code
+                }
         return {
-            'name': profile_name,
-            'avatar': profile_avatar,
-            'wechat_id': profile_wechat_id,
-            'desc': profile_desc,
-            'principal': profile_principal,
-            'qr_code': profile_qr_code
+            'name': '',
+            'avatar': '',
+            'wechat_id': '',
+            'desc': '',
+            'principal': '',
+            'qr_code': ''
         }
-
     @staticmethod
     def is_login(text):
         page = etree.HTML(text)

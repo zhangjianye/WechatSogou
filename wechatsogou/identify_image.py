@@ -3,7 +3,7 @@
 from __future__ import absolute_import, unicode_literals, print_function
 
 import time
-
+import random
 import requests
 
 from wechatsogou.five import readimg, input
@@ -123,6 +123,7 @@ def unlock_weixin_callback_example(url, req, resp, img, identify_image_callback)
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'Referer': url
     }
+    time.sleep(int(random.random() * 3 * 100) / 100)
     r_unlock = req.post(unlock_url, data, headers=headers)
     if not r_unlock.ok:
         raise WechatSogouVcodeOcrException(
