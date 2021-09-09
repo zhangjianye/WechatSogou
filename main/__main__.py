@@ -16,7 +16,7 @@ def main():
         pages = int(pages_str)
     except:
         pages = 0
-    ws_api = WechatSogouAPI(captcha_break_time=3, keyword=keyword)
+    ws_api = WechatSogouAPI(captcha_break_time=20, keyword=keyword)
     workbook, sheet = output.prepare_excel('test', keyword)
     page = 1
     row = 1

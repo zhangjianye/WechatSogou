@@ -76,6 +76,7 @@ def unlock_sogou_callback_example(url, req, resp, img, identify_image_callback):
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'Referer': 'http://weixin.sogou.com/antispider/?from=%2f' + url_quote
     }
+    time.sleep(int(random.random() * 5 * 100) / 100)
     r_unlock = req.post(unlock_url, data, headers=headers)
     r_unlock.encoding = 'utf-8'
     if not r_unlock.ok:

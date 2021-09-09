@@ -83,7 +83,7 @@ class WechatSogouRequest(object):
         # qs['wxid'] = wxid
         # qs['usip'] = usip
 
-        return 'http://weixin.sogou.com/weixin?{}'.format(urlencode(qs_dict))
+        return 'https://weixin.sogou.com/weixin?{}'.format(urlencode(qs_dict))
 
     @staticmethod
     def gen_search_gzh_url(keyword, page=1):
@@ -109,7 +109,7 @@ class WechatSogouRequest(object):
         qs_dict['ie'] = 'utf8'
         qs_dict['query'] = keyword
 
-        return 'http://weixin.sogou.com/weixin?{}'.format(urlencode(qs_dict))
+        return 'https://weixin.sogou.com/weixin?{}'.format(urlencode(qs_dict))
 
     @staticmethod
     def gen_hot_url(hot_index, page=1):
@@ -155,4 +155,4 @@ class WechatSogouRequest(object):
             WechatSogouConst.hot_index.pet: 20,  # 萌宠
 
         }
-        return 'http://weixin.sogou.com/wapindex/wap/0612/wap_{}/{}.html'.format(index_urls[hot_index], page - 1)
+        return 'https://weixin.sogou.com/wapindex/wap/0612/wap_{}/{}.html'.format(index_urls[hot_index], page - 1)
