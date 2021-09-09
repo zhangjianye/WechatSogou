@@ -111,6 +111,12 @@ class WechatSogouAPI(object):
                 if query and commit:
                     query.send_keys(self.keyword)
                     commit.click()
+                    while True:
+                        text = driver.page_source
+                        if '请输入验证码' in text:
+                            time.sleep(5)
+                        else:
+                            break
                     break
 
             except selenium.common.exceptions.WebDriverException:
