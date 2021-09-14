@@ -25,6 +25,7 @@ def __get_result(img_data_str):
     data = {"username": user_name, "password": password, "typeid": typeid, "image": img_data_str}
     try:
         result = json.loads(requests.post("http://api.ttshitu.com/predict", json=data).text)
+        print(result)
         if result['success']:
             return result["data"]["result"]
         else:
@@ -36,6 +37,6 @@ def __get_result(img_data_str):
 def test_image_identify():
     uname = 'weichat'
     pwd = '142857'
-    filename = '/Users/zhangjianye/Downloads/tmpogr2jq_t.png'
+    filename = '/Users/zhangjianye/Downloads/ymksvb.jpeg'
     typeid = 3
     print(image_identify_from_file(filename))

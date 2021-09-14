@@ -17,18 +17,23 @@ def main():
     except:
         pages = 0
     ws_api = WechatSogouAPI(captcha_break_time=19, keyword=keyword)
-    workbook, sheet = output.prepare_excel('test', keyword)
+    # workbook, sheet = output.prepare_excel('test', keyword)
     page = 1
     row = 1
-    while pages == 0 or page <= pages:
-        articles = acquire.search_article(ws_api, keyword, specified_page=page)
+    result = []
+    continue_search = True
+    while (pages == 0 or page <= pages) and continue_search:
+        articles, continue_search = acquire.search_article(ws_api, keyword, specified_page=page)
         if len(articles) > 0:
-            row = output.output_excel(workbook, sheet, articles, row)
+            result.extend(articles)
+            # row = output.output_excel(workbook, sheet, articles, row)
         else:
             break
         page += 1
 
-    output.close_excel(workbook)
+    # output.close_excel(workbook)
+
+    output.output_html(keyword, 'test', result)
 
     # acquire.search_article(ws_api, keyword, page_limit=1)
 

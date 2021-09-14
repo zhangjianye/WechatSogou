@@ -3,13 +3,46 @@ from xlsxwriter.worksheet import Worksheet
 from biz.datatype import Article, Account
 from io import BytesIO
 from urllib.request import urlopen
+from bottle import template
 import os
 import datetime
 import traceback
 
 
+def output_html(title, filename, articles: [Article]):
+    tpl = os.path.join(os.getcwd(), 'template.tpl')
+    info = {
+        'title': title,
+        'articles': [
+        ]
+    }
+    for index, a in enumerate(articles):
+        gzh = a.gzh
+        article = {
+            'number': index + 1,
+            'images': [],
+            'title': a.title,
+            'time': datetime.datetime.fromtimestamp(a.time).strftime('%Y-%m-%d %H:%M:%S'),
+            'wechat_name': a.wechat_name,
+            'gzh_name': gzh.name,
+            'isv': '是' if a.isv == 1 else '否',
+            'wechat_id': gzh.wechat_id,
+            'principal': gzh.principal,
+            'desc': gzh.desc,
+            'qr_code': gzh.qr_code
+        }
+        for i in a.imgs:
+            article['images'].append(i)
+        info['articles'].append(article)
+    result = template(tpl, info)
+    filename = __get_validated_filename(filename, 'html')
+    with open(filename, 'w') as f:
+        f.write(result)
+    print('done.')
+
+
 def prepare_excel(filename, sheet_name):
-    filename = __get_validated_filename(filename)
+    filename = __get_validated_filename(filename, 'xlsx')
     workbook = Workbook(filename)
     sheet = workbook.add_worksheet(sheet_name)
     __prepare_header(sheet)
@@ -101,13 +134,12 @@ def __write_image_by_url(sheet: Worksheet, row, col, url):
     sheet.insert_image(row, col, url, {'image_data': image_data, 'x_scale': 0.25, 'y_scale': 0.25})
 
 
-def __get_validated_filename(filename: str):
+def __get_validated_filename(filename: str, extend: str):
     if not os.path.isabs(filename):
         filename = os.path.join(os.getcwd(), filename)
     splits = os.path.splitext(filename)
-    print(splits)
     if len(splits) < 2 or len(splits[1]) <= 1:
-        filename += '.xlsx'
+        filename += '.{}'.format(extend)
     splits = os.path.split(filename)
     path = splits[0]
     if not os.path.exists(path):

@@ -162,7 +162,8 @@ class WechatSogouStructuring(object):
         """
         page = etree.HTML(text)
         lis = page.xpath('//ul[@class="news-list"]/li')
-
+        next_page = get_first_of_element(page, '//a[@uigs="page_next"]')
+        print('next_page={}, bool(next_page)={}'.format(next_page, next_page != ''))
         articles = []
         for li in lis:
             url = get_first_of_element(li, 'div[1]/a/@href')
@@ -212,7 +213,7 @@ class WechatSogouStructuring(object):
                     'isv': gzh_isv,
                 }
             })
-        return articles
+        return articles, next_page != ''
 
     @staticmethod
     def get_gzh_info_by_history(text):
@@ -494,15 +495,16 @@ class WechatSogouStructuring(object):
         all_img_element = content_text.find_all('img') or []
         for ele in all_img_element:
             # 删除部分属性
-            img_url = format_image_url(ele.attrs['data-src'])
-            del ele.attrs['data-src']
+            if 'data-src' in ele.attrs:
+                img_url = format_image_url(ele.attrs['data-src'])
+                del ele.attrs['data-src']
 
-            ele.attrs['src'] = img_url
+                ele.attrs['src'] = img_url
 
-            if not img_url.startswith('http'):
-                continue
-                # raise WechatSogouException('img_url [{}] 不合法'.format(img_url))
-            all_img_set.add(img_url)
+                if not img_url.startswith('http'):
+                    continue
+                    # raise WechatSogouException('img_url [{}] 不合法'.format(img_url))
+                all_img_set.add(img_url)
 
         backgroud_image = content_text.find_all(style=re.compile("background-image")) or []
         for ele in backgroud_image:

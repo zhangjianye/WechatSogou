@@ -26,3 +26,4 @@ docs/src/node_modules/
 bin/*.xlsx
 bin/*.jpeg
 bin/*.json
+*.html

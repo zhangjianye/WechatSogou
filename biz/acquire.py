@@ -24,12 +24,13 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
     articles = []
     # images = {}
     # index = 0
+    continue_search = False
     page = 1 if specified_page <= 0 else specified_page
     while True:
         count = 0
         # results = ws_api.search_article(keyword, page, article_type=WechatSogouConst.search_article_type.image)
         results = ws_api.search_article(keyword, page)
-        for r in results:
+        for r, has_next_page in results:
             # time.sleep(5)
             article = Article()
             article.title = r['article']['title']
@@ -57,7 +58,9 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
             get_account_detail(article)
             articles.append(article)
             count += 1
-        if count == 0 or (0 < page_limit <= page) or specified_page > 0:
+            continue_search = has_next_page
+        print('continue_search={}'.format(continue_search))
+        if count == 0 or (0 < page_limit <= page) or specified_page > 0 or not continue_search:
             print('search end at page {}'.format(page))
             break
         page += 1
@@ -75,7 +78,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
     #             a.gzh.qr_code = result['qr_code']
     #         except WechatSogouException as e:
     #             print(e)
-    return articles
+    return articles, continue_search
     # print(articles)
     # with open('/Users/zhangjianye/Downloads/test.txt', 'w') as f:
     #     print(articles, file=f)

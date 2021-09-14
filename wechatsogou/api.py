@@ -296,6 +296,7 @@ class WechatSogouAPI(object):
             identify_image_callback = identify_image_callback_automatically
         assert unlock_callback is None or callable(unlock_callback)
         assert callable(identify_image_callback)
+        retry_times = 0
         while True:
             if not session:
                 session = self.__get_session()
@@ -355,7 +356,12 @@ class WechatSogouAPI(object):
                     resp.encoding = 'utf-8'
                 print("after unlock_platform, url={}".format(resp.url))
                 if '请输入验证码' in resp.text:
-                    print('*******what the fuck, now retry******')
+                    print('*******what the fuck, text begin******')
+                    print(resp.text)
+                    print('*******what the fuck, text end******')
+                    retry_times += 1
+                    if retry_times >= 2:
+                        break
                 else:
                     break
             else:
@@ -602,7 +608,8 @@ class WechatSogouAPI(object):
             else:
                 break
         # print('response text:{}'.format(resp.text))
-        article_list = WechatSogouStructuring.get_article_by_search(resp.text)
+        article_list, has_next_page = WechatSogouStructuring.get_article_by_search(resp.text)
+        print('has_next_page:{}'.format(has_next_page))
         for i in article_list:
             if decode_url:
                 # print('article in result of search_article, before format, url={}, profile_url={}'.format(
@@ -617,7 +624,7 @@ class WechatSogouAPI(object):
                                                             session=session)
                 # print('article in result of search_article, after format, url={}, profile_url={}'.format(
                 #     i['article']['url'], i['gzh']['profile_url']))
-            yield i
+            yield i, has_next_page
 
     def get_gzh_article_by_history(self, keyword=None, url=None,
                                    unlock_callback_sogou=None,
