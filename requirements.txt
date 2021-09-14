@@ -11,3 +11,5 @@ beautifulsoup4~=4.9.3
 pip~=21.2.4
 cryptography~=3.4.7
 setuptools~=56.0.0
+bottle~=0.12.19
+selenium~=3.141.0
