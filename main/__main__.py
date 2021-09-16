@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from biz import acquire as acquire
-from biz import output as output
+from biz import acquire, output, process
 from wechatsogou import WechatSogouAPI, WechatSogouConst
 
 
@@ -25,6 +24,7 @@ def main():
     while (pages == 0 or page <= pages) and continue_search:
         articles, continue_search = acquire.search_article(ws_api, keyword, specified_page=page)
         if len(articles) > 0:
+            process.process_qrcode(articles)
             result.extend(articles)
             # row = output.output_excel(workbook, sheet, articles, row)
         else:
