@@ -570,14 +570,14 @@ class WechatSogouStructuring(object):
                 profile_wechat_id.removeprefix('微信号: ')
                 profile_desc = get_first_of_element(profile_area, 'ul/li[1]/div/text()')
                 profile_principal = get_first_of_element(profile_area, 'ul/li[2]/div/text()')
-                profile_qr_code = get_first_of_element(profile_info, 'div[2]/div/div/img/@src')
+                # profile_qr_code = get_first_of_element(profile_info, 'div[2]/div/div/img/@src')
                 return {
                     'name': profile_name,
                     'avatar': profile_avatar,
                     'wechat_id': profile_wechat_id,
                     'desc': profile_desc,
                     'principal': profile_principal,
-                    'qr_code': profile_qr_code
+                    # 'qr_code': profile_qr_code
                 }
         return {
             'name': '',

@@ -827,7 +827,7 @@ class WechatSogouAPI(object):
         sugg = re.findall(u'\["' + keyword + '",(.*?),\["', r.text)[0]
         return json.loads(sugg)
 
-    def get_gzh_detail(self, profile_url, unlock_callback=None, identify_image_callback=None, decode_url=True):
+    def get_gzh_detail(self, profile_url, wechat_name='', unlock_callback=None, identify_image_callback=None, decode_url=True):
         """根据公众号url（来源如文章列表）获取公众号详情
 
         对于出现验证码的情况，可以由使用者自己提供：
@@ -873,7 +873,17 @@ class WechatSogouAPI(object):
                                     identify_image_callback=identify_image_callback,
                                     session=session)
         result = WechatSogouStructuring.get_gzh_detail(resp.text)
-        if decode_url and result['qr_code'].startswith('/'):
-            result['qr_code'] = 'https://mp.weixin.qq.com{}'.format(result['qr_code'])
+        if len(result['wechat_id']) == 0:
+            # get wechat_id by search_gzh
+            name = wechat_name
+            if len(result['name']) > 0:
+                name = result['name']
+            gzhs = self.search_gzh(name)
+            for gzh in gzhs:
+                if gzh['wechat_name'] == name:
+                    result['wechat_id'] = gzh['wechat_id']
+                    break
+        # if decode_url and result['qr_code'].startswith('/'):
+        #     result['qr_code'] = 'https://mp.weixin.qq.com{}'.format(result['qr_code'])
 
         return result

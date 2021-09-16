@@ -11,13 +11,13 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
             # time.sleep(5)
             # print('title={}, profile_url={}'.format(a.title, a.profile_url))
             try:
-                result = ws_api.get_gzh_detail(a.profile_url)
+                result = ws_api.get_gzh_detail(a.profile_url, wechat_name=a.wechat_name)
                 a.gzh.name = result['name']
                 a.gzh.avatar = result['avatar']
                 a.gzh.wechat_id = result['wechat_id'].removeprefix('微信号: ')
                 a.gzh.desc = result['desc']
                 a.gzh.principal = result['principal']
-                a.gzh.qr_code = result['qr_code']
+                # a.gzh.qr_code = result['qr_code']
             except WechatSogouException as e:
                 print(e)
 

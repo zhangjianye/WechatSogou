@@ -1,10 +1,10 @@
 from biz.datatype import Article
-from utilities import qr
+# from utilities import qr
 
 
 def process_qrcode(articles: [Article]):
     # TODO: implement this asynchronously
     for article in articles:
-        qr_code = article.gzh.qr_code
-        if len(qr_code) > 0:
-            article.gzh.qr_code = 'http://qr.kegood.com/?m=1&e=Q&p=10&url=' + qr.decode_from_url(qr_code)
+        gzh = article.gzh
+        if gzh and len(gzh.wechat_id) > 0:
+            article.gzh.qr_code = 'https://open.weixin.qq.com/qr/code?username=' + gzh.wechat_id
