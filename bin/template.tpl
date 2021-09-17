@@ -103,8 +103,8 @@
             margin: auto;
         }
         img.qrcode {
-            width: 50px;
-            height: 50px;
+            width: 90px;
+            height: 90px;
         }
         div.thumb_container {
             height: 100px;
