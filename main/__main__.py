@@ -2,7 +2,7 @@
 import getopt
 import sys
 
-from biz import acquire, output, process, storage
+from biz import acquire, output, process, storage, convert
 from wechatsogou import WechatSogouAPI
 from common import tools
 
@@ -51,10 +51,11 @@ def __parse_argv(argv):
                 break
             args['m'] = 'g'
         elif arg in ('-k', '--key'):
-            if 'k' in args:
-                args['k'].add(val)
-            else:
-                args['k'] = {val}
+            vals = val.split()
+            if 'k' not in args:
+                args['k'] = set()
+            for v in vals:
+                args['k'].add(v)
         elif arg in ('-o', '--object'):
             if 'o' in args:
                 conflicting = True
@@ -149,16 +150,16 @@ def main(argv):
 
 
 def __search(object_name, keywords, begin_page, end_page):
-    keyword = keywords[0]
-    ws_api = WechatSogouAPI(captcha_break_time=19, keyword=keyword)
+    assert len(keywords) > 0
+    ws_api = WechatSogouAPI(captcha_break_time=19, keyword=keywords[0])
     articles_set = storage.Storage().load_article_set(object_name)
     # result = []
 
-    def save(articles):
-        storage.Storage().save_articles(object_name, articles)
+    def save(keyword, articles):
+        storage.Storage().save_articles(object_name, keyword, articles)
 
     for k in keywords:
-        __search_single_keyword(ws_api, k, begin_page, end_page, save, articles_set)
+        __search_single_keyword(ws_api, k, begin_page, end_page, lambda x: save(k, x), articles_set)
 
 
 def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, article_set):
@@ -178,7 +179,11 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
 
 
 def __convert(object_name, keys, begin_index, end_index):
-    pass
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index)
+    converter = convert.Converter(keys)
+    for a in articles:
+        # if a
+        pass
 
 
 def __generate(object_name, template, filename):

@@ -28,25 +28,6 @@ class Storage(metaclass=Singleton):
     def connected(self) -> bool:
         return self._connected
 
-    def __load_object(self, object_name):
-        return self._db_objects.find_one({'name': object_name})
-
-    def __load_or_create_object(self, object_name):
-        query = {'name': object_name}
-        object = self._db_objects.find_one(query)
-        last_index = 0
-        if object is None:
-            object_id = self._db_objects.insert_one({'name': object_name, 'last_index': 0}).inserted_id
-        else:
-            object_id = object['_id']
-            last_index = object['last_index']
-        return object_id, last_index
-
-    def __modify_object_last_index(self, object_id, last_index):
-        query = {'_id': object_id}
-        update = {'$set': {'last_index': last_index}}
-        self._db_objects.update_one(query, update)
-
     def load_article_set(self, object_name):
         obj = self.__load_object(object_name)
         result = set()
@@ -57,7 +38,7 @@ class Storage(metaclass=Singleton):
                 result.add(combination)
         return result
 
-    def save_articles(self, object_name, articles: [Article]):
+    def save_articles(self, object_name, keyword, articles: [Article]):
         object_id, index = self.__load_or_create_object(object_name)
         records = []
         for a in articles:
@@ -65,6 +46,7 @@ class Storage(metaclass=Singleton):
             record = {
                 'object_id': object_id,
                 'index': index,
+                'keyword': keyword,
                 'title': a.title,
                 'temp_url': a.url,
                 'url': '',
@@ -86,8 +68,46 @@ class Storage(metaclass=Singleton):
         self._db_articles.insert_many(records)
         self.__modify_object_last_index(object_id, index)
 
-    def load_articles(self, object_name):
+    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0):
+        object_id = self.__get_object_id(object_name)
+        query = {
+            'object_id': object_id,
+        }
+        if begin_index > 0 or end_index > 0:
+            query['index'] = {}
+            if begin_index > 0:
+                query['index']['$gte'] = begin_index
+            if end_index > 0:
+                query['index']['$lte'] = end_index
+        if limit > 0:
+            return self._db_articles.find(query).limit(limit)
+        else:
+            return self._db_articles.find(query)
         pass
+
+    def __load_object(self, object_name):
+        return self._db_objects.find_one({'name': object_name})
+
+    def __get_object_id(self, object_name):
+        query = {'name': object_name}
+        object = self._db_objects.find_one(query)
+        return object['_id']
+
+    def __load_or_create_object(self, object_name):
+        query = {'name': object_name}
+        object = self._db_objects.find_one(query)
+        last_index = 0
+        if object is None:
+            object_id = self._db_objects.insert_one({'name': object_name, 'last_index': 0}).inserted_id
+        else:
+            object_id = object['_id']
+            last_index = object['last_index']
+        return object_id, last_index
+
+    def __modify_object_last_index(self, object_id, last_index):
+        query = {'_id': object_id}
+        update = {'$set': {'last_index': last_index}}
+        self._db_objects.update_one(query, update)
 
     def __load_articles_for_set(self, object_id):
         query = {'object_id': object_id}

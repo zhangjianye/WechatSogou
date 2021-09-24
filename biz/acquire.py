@@ -31,6 +31,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
         # results = ws_api.search_article(keyword, page, article_type=WechatSogouConst.search_article_type.image)
         results = ws_api.search_article(keyword, page)
         for r, has_next_page in results:
+            continue_search = has_next_page
             count += 1
             title = r['article']['title']
             wechat_name = r['gzh']['wechat_name']
@@ -67,7 +68,6 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
                     pass
             get_account_detail(article)
             articles.append(article)
-            continue_search = has_next_page
         print('continue_search={}'.format(continue_search))
         if count == 0 or (0 < page_limit <= page) or specified_page > 0 or not continue_search:
             # print('search end at page {}'.format(page))

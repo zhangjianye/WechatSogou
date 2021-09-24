@@ -9,7 +9,7 @@ import datetime
 import traceback
 
 
-def output_html(title, filename, template_name, articles: [Article]):
+def output_html(title, filename, template_name, articles):
     tpl = os.path.join(os.getcwd(), 'templates/{}.tpl'.format(template_name))
     info = {
         'title': title,
