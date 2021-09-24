@@ -85,7 +85,7 @@ class Storage(metaclass=Singleton):
             result = self._db_articles.find(query).limit(limit)
         else:
             result = self._db_articles.find(query)
-        return [self.__dict_to_article(d) for d in result]
+        return (self.__dict_to_article(d) for d in result)
 
     def update_article_url(self, article: Article):
         query = {'_id': article.id}
