@@ -9,6 +9,7 @@ from common import tools
 
 def __connect_db():
     connection_string = 'mongodb://127.0.0.1:27017'
+    # connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
     if not storage.Storage(connection_string).connected():
         print('connect to db {} failed.'.format(connection_string))
         sys.exit(1)
