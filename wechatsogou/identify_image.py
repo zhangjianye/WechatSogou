@@ -10,7 +10,7 @@ from wechatsogou.five import readimg, input
 from wechatsogou.filecache import WechatCache
 from wechatsogou.exceptions import WechatSogouVcodeOcrException
 
-from utilities import unlock
+from common import unlock
 
 ws_cache = WechatCache()
 

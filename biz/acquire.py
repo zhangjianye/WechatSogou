@@ -5,19 +5,19 @@ from wechatsogou.request import WechatSogouRequest
 import time
 
 
-def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page=0):
+def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, specified_page=0):
     def get_account_detail(a: Article):
         if len(a.profile_url) > 0:
             # time.sleep(5)
             # print('title={}, profile_url={}'.format(a.title, a.profile_url))
             try:
                 result = ws_api.get_gzh_detail(a.profile_url, wechat_name=a.wechat_name)
-                a.gzh.name = result['name']
-                a.gzh.avatar = result['avatar']
-                a.gzh.wechat_id = result['wechat_id'].removeprefix('微信号: ')
-                a.gzh.desc = result['desc']
-                a.gzh.principal = result['principal']
-                # a.gzh.qr_code = result['qr_code']
+                a.gzh.name = result.get('name', '')
+                a.gzh.avatar = result.get('avatar', '')
+                a.gzh.wechat_id = result.get('wechat_id', '').removeprefix('微信号: ')
+                a.gzh.desc = result.get('desc', '')
+                a.gzh.principal = result.get('principal', '')
+                # a.gzh.qr_code = result.get('qr_code', '')
             except WechatSogouException as e:
                 print(e)
 
@@ -31,13 +31,23 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
         # results = ws_api.search_article(keyword, page, article_type=WechatSogouConst.search_article_type.image)
         results = ws_api.search_article(keyword, page)
         for r, has_next_page in results:
+            count += 1
+            title = r['article']['title']
+            wechat_name = r['gzh']['wechat_name']
+            article_time = r['article']['time']
+            combination = (title, wechat_name, article_time)
+            if combination in article_set:
+                print('article {} wrote by {} on {} existed'.format(title, wechat_name, article_time))
+                continue
+            else:
+                article_set.add(combination)
             # time.sleep(5)
             article = Article()
-            article.title = r['article']['title']
+            article.title = title
             article.url = r['article']['url']
-            article.time = r['article']['time']
+            article.time = article_time
             article.profile_url = r['gzh']['profile_url']
-            article.wechat_name = r['gzh']['wechat_name']
+            article.wechat_name = wechat_name
             article.isv = r['gzh']['isv']
             # if count == 6:
             #     print('aritcle.imgs={}'.format(r['article']['imgs']))
@@ -57,11 +67,10 @@ def search_article(ws_api: WechatSogouAPI, keyword, page_limit=0, specified_page
                     pass
             get_account_detail(article)
             articles.append(article)
-            count += 1
             continue_search = has_next_page
         print('continue_search={}'.format(continue_search))
         if count == 0 or (0 < page_limit <= page) or specified_page > 0 or not continue_search:
-            print('search end at page {}'.format(page))
+            # print('search end at page {}'.format(page))
             break
         page += 1
     # for a in articles:

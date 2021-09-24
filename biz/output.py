@@ -9,8 +9,8 @@ import datetime
 import traceback
 
 
-def output_html(title, filename, articles: [Article]):
-    tpl = os.path.join(os.getcwd(), 'template.tpl')
+def output_html(title, filename, template_name, articles: [Article]):
+    tpl = os.path.join(os.getcwd(), 'templates/{}.tpl'.format(template_name))
     info = {
         'title': title,
         'articles': [
@@ -41,7 +41,25 @@ def output_html(title, filename, articles: [Article]):
     print('done.')
 
 
-def prepare_excel(filename, sheet_name):
+def output_excel(title, filename, articles: [Article]):
+    workbook, sheet = __prepare_excel(filename, title)
+    __output_excel(workbook, sheet, articles)
+    __close_excel(workbook)
+    # page = 1
+    # while (pages == 0 or page <= pages) and continue_search:
+    #     articles, continue_search = acquire.search_article(ws_api, keyword, specified_page=page)
+    #     if len(articles) > 0:
+    #         process.process_qrcode(articles)
+    #         result.extend(articles)
+    #         # row = output.output_excel(workbook, sheet, articles, row)
+    #     else:
+    #         break
+    #     page += 1
+
+    # output.close_excel(workbook)
+
+
+def __prepare_excel(filename, sheet_name):
     filename = __get_validated_filename(filename, 'xlsx')
     workbook = Workbook(filename)
     sheet = workbook.add_worksheet(sheet_name)
@@ -49,11 +67,11 @@ def prepare_excel(filename, sheet_name):
     return workbook, sheet
 
 
-def close_excel(workbook: Workbook):
+def __close_excel(workbook: Workbook):
     workbook.close()
 
 
-def output_excel(workbook: Workbook, sheet: Worksheet, articles: [Article], start_row=0) -> int:
+def __output_excel(workbook: Workbook, sheet: Worksheet, articles: [Article], start_row=0) -> int:
     next_start_row = __write_content(sheet, workbook, articles, start_row)
     return next_start_row
 
@@ -121,6 +139,7 @@ def __write_content(sheet: Worksheet, workbook: Workbook, articles: [Article], s
             print(traceback.print_exc())
         # row += 1
     return row
+
 
 def __write_maybe_merged_cell(sheet:Worksheet, first_row, first_col, last_row, last_col, data, format):
     if first_col != last_col or first_row != last_row:

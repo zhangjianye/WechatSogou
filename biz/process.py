@@ -1,5 +1,5 @@
 from biz.datatype import Article
-# from utilities import qr
+# from common import qr
 
 
 def process_qrcode(articles: [Article]):

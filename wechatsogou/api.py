@@ -422,12 +422,16 @@ class WechatSogouAPI(object):
             pads = re.findall(r'href\.substr\(a\+(\d+)\+parseInt\("(\d+)"\)\+b,1\)', text)
             url = _parse_url(url, pads[0] if pads else [])
             print('in __format_url, before __get_by_unlock, url={}'.format(url))
-            resp = self.__get_by_unlock(url,
-                                        referer=referer,
-                                        unlock_platform=self.__unlock_sogou,
-                                        unlock_callback=unlock_callback,
-                                        identify_image_callback=identify_image_callback,
-                                        session=session)
+            try:
+                resp = self.__get_by_unlock(url,
+                                            referer=referer,
+                                            unlock_platform=self.__unlock_sogou,
+                                            unlock_callback=unlock_callback,
+                                            identify_image_callback=identify_image_callback,
+                                            session=session)
+            except WechatSogouException as e:
+                print(e)
+                return url
             uri = ''
             base_url = re.findall(r'var url = \'(.*?)\';', resp.text)
             if base_url and len(base_url) > 0:
@@ -522,11 +526,14 @@ class WechatSogouAPI(object):
         """
         url = WechatSogouRequest.gen_search_gzh_url(keyword, page)
         session = self.__get_session()
-        resp = self.__get_by_unlock(url,
+        try:
+            resp = self.__get_by_unlock(url,
                                     unlock_platform=self.__unlock_sogou,
                                     unlock_callback=unlock_callback,
                                     identify_image_callback=identify_image_callback,
                                     session=session)
+        except WechatSogouException:
+            return []
         gzh_list = WechatSogouStructuring.get_gzh_by_search(resp.text)
         for i in gzh_list:
             if decode_url:
@@ -783,11 +790,14 @@ class WechatSogouAPI(object):
         """
 
         print('get_article_content, url={}'.format(url))
-        resp = self.__get_by_unlock(url,
-                                    unlock_platform=self.__unlock_wechat,
-                                    unlock_callback=unlock_callback,
-                                    identify_image_callback=identify_image_callback)
-
+        try:
+            resp = self.__get_by_unlock(url,
+                                        unlock_platform=self.__unlock_wechat,
+                                        unlock_callback=unlock_callback,
+                                        identify_image_callback=identify_image_callback)
+        except WechatSogouException as e:
+            print(e)
+            return None
         resp.encoding = 'utf-8'
         if '链接已过期' in resp.text:
             raise WechatSogouException('get_article_content 链接 [{}] 已过期'.format(url))
@@ -867,16 +877,20 @@ class WechatSogouAPI(object):
 
         session = self.__get_session()
         print('get_gzh_detail, profile_url={}'.format(profile_url))
-        resp = self.__get_by_unlock(profile_url,
-                                    unlock_platform=self.__unlock_wechat,
-                                    unlock_callback=unlock_callback,
-                                    identify_image_callback=identify_image_callback,
-                                    session=session)
-        result = WechatSogouStructuring.get_gzh_detail(resp.text)
-        if len(result['wechat_id']) == 0:
+        result = {}
+        try:
+            resp = self.__get_by_unlock(profile_url,
+                                        unlock_platform=self.__unlock_wechat,
+                                        unlock_callback=unlock_callback,
+                                        identify_image_callback=identify_image_callback,
+                                        session=session)
+            result = WechatSogouStructuring.get_gzh_detail(resp.text)
+        except WechatSogouException as e:
+            print(e)
+        if 'wechat_id' not in result or len(result['wechat_id']) == 0:
             # get wechat_id by search_gzh
             name = wechat_name
-            if len(result['name']) > 0:
+            if 'name' in result and len(result['name']) > 0:
                 name = result['name']
             gzhs = self.search_gzh(name)
             for gzh in gzhs:
