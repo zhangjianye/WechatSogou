@@ -80,10 +80,10 @@ class Storage(metaclass=Singleton):
             if end_index > 0:
                 query['index']['$lte'] = end_index
         if limit > 0:
-            return self._db_articles.find(query).limit(limit)
+            result = self._db_articles.find(query).limit(limit)
         else:
-            return self._db_articles.find(query)
-        pass
+            result = self._db_articles.find(query)
+        return [self.__dict_to_article(d) for d in result]
 
     def __load_object(self, object_name):
         return self._db_objects.find_one({'name': object_name})
@@ -113,3 +113,24 @@ class Storage(metaclass=Singleton):
         query = {'object_id': object_id}
         columns = {'_id': 0, 'title': 1, 'wechat_name': 1, 'time': 1}
         return self._db_articles.find(query, columns)
+
+    @staticmethod
+    def __dict_to_article(d) -> Article:
+        account = Account()
+        gzh = d['gzh']
+        account.name = gzh['name']
+        account.avatar = gzh['avatar']
+        account.principal = gzh['principal']
+        account.wechat_id = gzh['wechat_id']
+        account.desc = gzh['desc']
+        account.qr_code = gzh['qr_code']
+        article = Article(title=d['title'],
+                          url=d['url'],
+                          temp_url=d['temp_url'],
+                          time=d['time'],
+                          wechat_name=d['wechat_name'],
+                          profile_url=d['profile_url'],
+                          isv=d['isv'],
+                          gzh=account)
+        article.imgs = d['imgs']
+        return article
