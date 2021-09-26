@@ -27,3 +27,5 @@ bin/*.xlsx
 bin/*.jpeg
 bin/*.json
 *.html
+bin/out/
+bin/temp/

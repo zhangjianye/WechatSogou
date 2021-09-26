@@ -8,8 +8,8 @@ from common import tools
 
 
 def __connect_db():
-    connection_string = 'mongodb://127.0.0.1:27017'
-    # connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
+    # connection_string = 'mongodb://127.0.0.1:27017'
+    connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
     if not storage.Storage(connection_string).connected():
         print('connect to db {} failed.'.format(connection_string))
         sys.exit(1)
@@ -20,7 +20,7 @@ def __parse_argv(argv):
     usage = """
     usage: run.py -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>]
            run.py -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]
-           run.py -g -o <object name> -t <template id> [-f <filename>]
+           run.py -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]
     """
     short_opts = 'hscgk:o:b:e:t:f:'
     long_opts = ['help', 'search', 'convert', 'generate', 'key=', 'object=', 'begin=', 'end=', 'template=', 'filename=']
@@ -117,7 +117,9 @@ def __do(args):
     elif args['m'] == 'g':
         template = args['t']
         filename = args['f'] if 'f' in args else object_name
-        __generate(object_name, template, filename)
+        begin_index = args['b'] if 'b' in args else 0
+        end_index = args['e'] if 'e' in args else 0
+        __generate(object_name, template, filename, begin_index, end_index)
 
 
 def main(argv):
@@ -171,6 +173,6 @@ def __convert(object_name, keys, begin_index, end_index):
                 break
 
 
-def __generate(object_name, template, filename):
-    articles = storage.Storage().load_articles(object_name)
+def __generate(object_name, template, filename, begin_index, end_index):
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index)
     output.output_html(object_name, filename, template, articles)

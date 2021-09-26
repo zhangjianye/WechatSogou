@@ -9,7 +9,7 @@ import math
 import random
 import re
 import time
-
+from pathlib import Path
 import requests
 
 from wechatsogou.const import agents, WechatSogouConst
@@ -26,7 +26,7 @@ import os
 
 
 class WechatSogouAPI(object):
-    def __init__(self, captcha_break_time=1, headers=None, cookie_path='', cookies=None, keyword='', **kwargs):
+    def __init__(self, captcha_break_time=1, headers=None, cookies=None, keyword='', **kwargs):
         """初始化参数
 
         Parameters
@@ -43,9 +43,6 @@ class WechatSogouAPI(object):
         self.captcha_break_times = captcha_break_time
         self.requests_kwargs = kwargs
         self.headers = headers
-        self.cookie_path = cookie_path
-        if not self.cookie_path:
-            self.cookie_path = os.path.join(os.getcwd(), 'cookie.json')
         self.cookies = cookies
         if self.cookies is None:
             self.cookies = {}
@@ -285,7 +282,9 @@ class WechatSogouAPI(object):
 
     @staticmethod
     def __write_failed_verified_image(code, content):
-        with open(os.path.join(os.getcwd(), code + '.jpeg'), 'wb') as file:
+        directory = os.path.join(os.getcwd(), 'temp')
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        with open(os.path.join(directory, code + '.jpeg'), 'wb') as file:
             file.write(content)
 
     def __get_by_unlock(self, url, referer=None, unlock_platform=None, unlock_callback=None,

@@ -154,7 +154,7 @@
                     % end
                 </td>
                 <td>{{article['title']}}</td>
-                <td>{{article['time']}}</td>
+                <td><a href="{{article['url']s}}">{{article['time']}}</a></td>
                 <td>{{article['wechat_name']}}</td>
                 <td>{{article['gzh_name']}}</td>
                 <td class="isv">{{article['isv']}}</td>

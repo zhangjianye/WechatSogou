@@ -7,6 +7,7 @@ from bottle import template
 import os
 import datetime
 import traceback
+from pathlib import Path
 
 
 def output_html(title, filename, template_name, articles):
@@ -22,6 +23,7 @@ def output_html(title, filename, template_name, articles):
             'number': index + 1,
             'images': [],
             'title': a.title,
+            'url': a.url,
             'time': datetime.datetime.fromtimestamp(a.time).strftime('%Y-%m-%d %H:%M:%S'),
             'wechat_name': a.wechat_name,
             'gzh_name': gzh.name,
@@ -35,7 +37,7 @@ def output_html(title, filename, template_name, articles):
             article['images'].append(i)
         info['articles'].append(article)
     result = template(tpl, info)
-    filename = __get_validated_filename(filename, 'html')
+    filename = __get_validated_out_filename(filename, 'html')
     with open(filename, 'w') as f:
         f.write(result)
     print('done.')
@@ -60,7 +62,7 @@ def output_excel(title, filename, articles: [Article]):
 
 
 def __prepare_excel(filename, sheet_name):
-    filename = __get_validated_filename(filename, 'xlsx')
+    filename = __get_validated_out_filename(filename, 'xlsx')
     workbook = Workbook(filename)
     sheet = workbook.add_worksheet(sheet_name)
     __prepare_header(sheet)
@@ -153,14 +155,13 @@ def __write_image_by_url(sheet: Worksheet, row, col, url):
     sheet.insert_image(row, col, url, {'image_data': image_data, 'x_scale': 0.25, 'y_scale': 0.25})
 
 
-def __get_validated_filename(filename: str, extend: str):
+def __get_validated_out_filename(filename: str, extend: str):
     if not os.path.isabs(filename):
-        filename = os.path.join(os.getcwd(), filename)
+        filename = os.path.join(os.getcwd(), 'out', filename)
     splits = os.path.splitext(filename)
     if len(splits) < 2 or len(splits[1]) <= 1:
         filename += '.{}'.format(extend)
     splits = os.path.split(filename)
     path = splits[0]
-    if not os.path.exists(path):
-        os.makedirs(path)
+    Path(path).mkdir(parents=True, exist_ok=True)
     return filename
