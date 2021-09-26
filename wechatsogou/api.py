@@ -225,7 +225,10 @@ class WechatSogouAPI(object):
             for k, v in self.headers.items():
                 h[k] = v
         print('__get, url={}, headers={}'.format(url, h))
-        resp = session.get(url, headers=h, **self.requests_kwargs)
+        try:
+            resp = session.get(url, headers=h, **self.requests_kwargs)
+        except Exception as e:
+            raise WechatSogouRequestsException(e)
 
         if not resp.ok:
             raise WechatSogouRequestsException('WechatSogouAPI get error', resp)
@@ -602,12 +605,16 @@ class WechatSogouAPI(object):
         print('search_article, url={}'.format(url))
         while True:
             session = self.__get_session()
-            resp = self.__get_by_unlock(url,
-                                        WechatSogouRequest.gen_search_article_url(keyword, article_type=article_type),
-                                        unlock_platform=self.__unlock_sogou,
-                                        unlock_callback=unlock_callback,
-                                        identify_image_callback=identify_image_callback,
-                                        session=session)
+            try:
+                resp = self.__get_by_unlock(url,
+                                            WechatSogouRequest.gen_search_article_url(keyword, article_type=article_type),
+                                            unlock_platform=self.__unlock_sogou,
+                                            unlock_callback=unlock_callback,
+                                            identify_image_callback=identify_image_callback,
+                                            session=session)
+            except WechatSogouException as e:
+                print(e)
+                continue
             if not WechatSogouStructuring.is_login(resp.text):
                 print('session not login, response text:{}'.format(resp.text))
                 self.reset_session()

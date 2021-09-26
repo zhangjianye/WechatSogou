@@ -1,8 +1,10 @@
 import time
-
+import queue
 import requests
 import json
+import threading
 from common.singleton import Singleton
+from .datatype import Article
 
 
 class ConvertException(Exception):
@@ -16,14 +18,19 @@ class Converter(metaclass=Singleton):
         self._convert_url = 'https://api.newrank.cn/api/async/task/sogou/towxurl'
         self._result_url = 'https://api.newrank.cn/api/task/result'
         self._index = 0
+        self._queue = queue.Queue()
+        self._failed_queue = queue.Queue()
+        self._finished = False
 
-    def convert(self, temp_url):
-        while True:
+    def convert(self, articles: [Article], finished_method):
+        done = False
+
+        def create_task(a: Article):
             if self._index >= len(self._keys):
                 raise ConvertException('no more valid key')
             key = self._keys[self._index]
             data = {
-                'url': temp_url
+                'url': a.temp_url
             }
             header = {
                 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
@@ -34,23 +41,67 @@ class Converter(metaclass=Singleton):
             if result['code'] != 0:
                 raise ConvertException('post failed')
             task_id = result['data']['taskId']
-            while True:
+            self._queue.put((a, key, task_id))
+            print('task created, index={} temp-url={}, task-id={}'.format(a.index, a.temp_url, task_id))
+
+        def query_result():
+            while not self._finished or not self._queue.empty():
+                item = self._queue.get()
+                a = item[0]
+                key = item[1]
+                task_id = item[2]
+                self._queue.task_done()
                 data = {
                     'taskId': task_id
                 }
-                response = requests.post(self._result_url, data=data, headers=header)
-                result = json.loads(response.text)
-                code = result['code']
-                if code == 0:
-                    tasks = result['task']
-                    if len(tasks) > 0:
-                        return tasks[0]['url']
+                header = {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+                    'Key': key
+                }
+                url = ''
+                succeed = False
+                while True:
+                    response = requests.post(self._result_url, data=data, headers=header)
+                    result = json.loads(response.text)
+                    code = result['code']
+                    if code == 0:
+                        tasks = result['task']
+                        if len(tasks) > 0:
+                            url = tasks[0]['url']
+                            succeed = True
+                            break
+                        else:
+                            break
+                    elif code in (1104, 1105, 1108, 1109):
+                        self._index += 1
+                        break
+                    elif code in (2200, 2201, 2202):
+                        time.sleep(0.1)
                     else:
-                        return ''
-                elif code in (1104, 1105, 1108, 1109):
-                    self._index += 1
-                    break
-                elif code in (2200, 2201, 2202):
-                    time.sleep(0.5)
+                        print('task failed, code:{}'.format(code))
+                        break
+                if succeed:
+                    if len(url) > 0:
+                        print('convert succeed, index={}, url={}'.format(a.index, url))
+                        a.url = url
+                        finished_method(a)
                 else:
-                    raise ConvertException('task failed, code:{}'.format(code))
+                    print('add to retry queue, index={}'.format(a.index))
+                    self._failed_queue.put(a)
+            done = True
+
+        thread = threading.Thread(target=query_result, daemon=True)
+        thread.start()
+        for a in articles:
+            create_task(a)
+            time.sleep(1)
+        while not self._failed_queue.empty():
+            a = self._failed_queue.get()
+            create_task(a)
+            time.sleep(1)
+        self._queue.join()
+        self._finished = True
+        thread.join()
+        # while not done:
+        #     time.sleep()
+
