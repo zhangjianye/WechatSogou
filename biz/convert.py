@@ -23,8 +23,6 @@ class Converter(metaclass=Singleton):
         self._finished = False
 
     def convert(self, articles: [Article], finished_method):
-        done = False
-
         def create_task(a: Article):
             if self._index >= len(self._keys):
                 raise ConvertException('no more valid key')
@@ -39,7 +37,7 @@ class Converter(metaclass=Singleton):
             response = requests.post(self._convert_url, data=data, headers=header)
             result = json.loads(response.text)
             if result['code'] != 0:
-                raise ConvertException('post failed')
+                raise ConvertException('post failed, code={}'.format(result['code']))
             task_id = result['data']['taskId']
             self._queue.put((a, key, task_id))
             print('task created, index={} temp-url={}, task-id={}'.format(a.index, a.temp_url, task_id))
@@ -60,6 +58,7 @@ class Converter(metaclass=Singleton):
                 }
                 url = ''
                 succeed = False
+                slept = False
                 while True:
                     response = requests.post(self._result_url, data=data, headers=header)
                     result = json.loads(response.text)
@@ -76,7 +75,8 @@ class Converter(metaclass=Singleton):
                         self._index += 1
                         break
                     elif code in (2200, 2201, 2202):
-                        time.sleep(0.1)
+                        time.sleep(1)
+                        slept = True
                     else:
                         print('task failed, code:{}'.format(code))
                         break
@@ -88,7 +88,8 @@ class Converter(metaclass=Singleton):
                 else:
                     print('add to retry queue, index={}'.format(a.index))
                     self._failed_queue.put(a)
-            done = True
+                if not slept:
+                    time.sleep(1)
 
         thread = threading.Thread(target=query_result, daemon=True)
         thread.start()
