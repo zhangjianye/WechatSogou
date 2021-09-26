@@ -126,29 +126,6 @@ def main(argv):
     print(args)
     __do(args)
 
-    # workbook, sheet = output.prepare_excel('test', keyword)
-    # page = 1
-    continue_search = True
-    # while (pages == 0 or page <= pages) and continue_search:
-    #     articles, continue_search = acquire.search_article(ws_api, keyword, specified_page=page)
-    #     if len(articles) > 0:
-    #         process.process_qrcode(articles)
-    #         result.extend(articles)
-    #         # row = output.output_excel(workbook, sheet, articles, row)
-    #     else:
-    #         break
-    #     page += 1
-
-    # output.close_excel(workbook)
-
-
-    # acquire.search_article(ws_api, keyword, page_limit=1)
-
-    # articles = acquire.search_article(ws_api, keyword, specified_page=13)
-    # output.output_excel(articles, 'test', keyword)
-
-    # output.output_excel(None, None, 'test', keyword)
-
 
 def __search(object_name, keywords, begin_page, end_page):
     assert len(keywords) > 0
