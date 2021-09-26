@@ -42,7 +42,11 @@ class Converter(metaclass=Singleton):
                 result = json.loads(response.text)
                 code = result['code']
                 if code == 0:
-                    return result['data']['url']
+                    tasks = result['task']
+                    if len(tasks) > 0:
+                        return tasks[0]['url']
+                    else:
+                        return ''
                 elif code in (1104, 1105, 1108, 1109):
                     self._index += 1
                     break

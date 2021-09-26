@@ -148,20 +148,24 @@
         % for article in articles:
             <tr>
                 <td class="number">{{article['number']}}</td>
-                <td>
+                <td class="image">
                     % for img in article['images']:
                     <div class="thumb_container"><img class="thumb" src="{{img}}"></div>
                     % end
                 </td>
+                % if len(article['url']) > 0:
+                <td><a href="{{article['url']}}" target="_blank">{{article['title']}}</a></td>
+                % else:
                 <td>{{article['title']}}</td>
-                <td><a href="{{article['url']s}}">{{article['time']}}</a></td>
+                % end
+                <td>{{article['time']}}</td>
                 <td>{{article['wechat_name']}}</td>
                 <td>{{article['gzh_name']}}</td>
                 <td class="isv">{{article['isv']}}</td>
                 <td>{{article['wechat_id']}}</td>
                 <td>{{article['principal']}}</td>
                 <td>{{article['desc']}}</td>
-                <td>{{article['qr_code']}}</td>
+                <td><a href="{{article['qr_code']}}" target="_blank">{{article['qr_code']}}</a></td>
             </tr>
         % end
         </tbody>
