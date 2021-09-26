@@ -24,23 +24,29 @@ class Converter(metaclass=Singleton):
 
     def convert(self, articles: [Article], finished_method):
         def create_task(a: Article):
-            if self._index >= len(self._keys):
-                raise ConvertException('no more valid key')
-            key = self._keys[self._index]
-            data = {
-                'url': a.temp_url
-            }
-            header = {
-                'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-                'Key': key
-            }
-            response = requests.post(self._convert_url, data=data, headers=header)
-            result = json.loads(response.text)
-            if result['code'] != 0:
-                raise ConvertException('post failed, code={}'.format(result['code']))
-            task_id = result['data']['taskId']
-            self._queue.put((a, key, task_id))
-            print('task created, index={} temp-url={}, task-id={}'.format(a.index, a.temp_url, task_id))
+            while True:
+                if self._index >= len(self._keys):
+                    raise ConvertException('no more valid key')
+                key = self._keys[self._index]
+                data = {
+                    'url': a.temp_url
+                }
+                header = {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+                    'Key': key
+                }
+                response = requests.post(self._convert_url, data=data, headers=header)
+                result = json.loads(response.text)
+                if result['code'] == 1105:
+                    self._index += 1
+                    time.sleep(1)
+                    continue
+                elif result['code'] != 0:
+                    raise ConvertException('post failed, code={}'.format(result['code']))
+                task_id = result['data']['taskId']
+                self._queue.put((a, key, task_id))
+                print('task created, index={} temp-url={}, task-id={}'.format(a.index, a.temp_url, task_id))
+                break
 
         def query_result():
             while not self._finished or not self._queue.empty():
