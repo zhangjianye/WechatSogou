@@ -157,11 +157,18 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
 
 
 def __convert(object_name, keys, begin_index, end_index):
-    articles = storage.Storage().load_articles(object_name, begin_index, end_index)
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index, empty_url=True)
     converter = convert.Converter(keys)
     for a in articles:
-        # if a
-        pass
+        if len(a.url) > 0:
+            continue
+        if len(a.temp_url) > 0:
+            try:
+                a.url = converter.convert(a.temp_url)
+                storage.Storage().update_article_url(a)
+            except convert.ConvertException as e:
+                print('convert exception occurred, object={}, index={}, e={}', object_name, a.index, e)
+                break
 
 
 def __generate(object_name, template, filename):

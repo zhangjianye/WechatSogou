@@ -68,7 +68,7 @@ class Storage(metaclass=Singleton):
         self._db_articles.insert_many(records)
         self.__modify_object_last_index(object_id, index)
 
-    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0):
+    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False):
         object_id = self.__get_object_id(object_name)
         query = {
             'object_id': object_id,
@@ -79,11 +79,18 @@ class Storage(metaclass=Singleton):
                 query['index']['$gte'] = begin_index
             if end_index > 0:
                 query['index']['$lte'] = end_index
+        if empty_url:
+            query['url'] = ''
         if limit > 0:
-            return self._db_articles.find(query).limit(limit)
+            result = self._db_articles.find(query).limit(limit)
         else:
-            return self._db_articles.find(query)
-        pass
+            result = self._db_articles.find(query)
+        return (self.__dict_to_article(d) for d in result)
+
+    def update_article_url(self, article: Article):
+        query = {'_id': article.id}
+        update = {'$set': {'url': article.url}}
+        self._db_articles.update_one(query, update)
 
     def __load_object(self, object_name):
         return self._db_objects.find_one({'name': object_name})
@@ -113,3 +120,26 @@ class Storage(metaclass=Singleton):
         query = {'object_id': object_id}
         columns = {'_id': 0, 'title': 1, 'wechat_name': 1, 'time': 1}
         return self._db_articles.find(query, columns)
+
+    @staticmethod
+    def __dict_to_article(d) -> Article:
+        account = Account()
+        gzh = d['gzh']
+        account.name = gzh['name']
+        account.avatar = gzh['avatar']
+        account.principal = gzh['principal']
+        account.wechat_id = gzh['wechat_id']
+        account.desc = gzh['desc']
+        account.qr_code = gzh['qr_code']
+        article = Article(id=d['_id'],
+                          index=d['index'],
+                          title=d['title'],
+                          url=d['url'],
+                          temp_url=d['temp_url'],
+                          time=d['time'],
+                          wechat_name=d['wechat_name'],
+                          profile_url=d['profile_url'],
+                          isv=d['isv'],
+                          gzh=account)
+        article.imgs = d['imgs']
+        return article

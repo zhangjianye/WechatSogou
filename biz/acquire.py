@@ -45,7 +45,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
             # time.sleep(5)
             article = Article()
             article.title = title
-            article.url = r['article']['url']
+            article.temp_url = r['article']['url']
             article.time = article_time
             article.profile_url = r['gzh']['profile_url']
             article.wechat_name = wechat_name
@@ -54,17 +54,17 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
             #     print('aritcle.imgs={}'.format(r['article']['imgs']))
             for img in r['article']['imgs']:
                 article.imgs.append(img)
-            if len(article.url) > 0:
+            if len(article.temp_url) > 0:
                 # print('get_article_content with title={}'.format(article.title))
                 try:
-                    c = ws_api.get_article_content(article.url)
+                    c = ws_api.get_article_content(article.temp_url)
                     if c is not None: # and '该内容已被发布者删除' not in c['content_html']:
                         for item in c['content_img_list']:
                             article.imgs.append(item)
                     else:
                         continue
                 except WechatSogouException:
-                    print('article url expired, title={}, url={}'.format(article.title, article.url))
+                    print('article url expired, title={}, url={}'.format(article.title, article.temp_url))
                     pass
             get_account_detail(article)
             articles.append(article)
