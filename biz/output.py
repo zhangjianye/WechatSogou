@@ -38,7 +38,7 @@ def output_html(title, filename, template_name, articles):
         info['articles'].append(article)
     result = template(tpl, info)
     filename = __get_validated_out_filename(filename, 'html')
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         f.write(result)
     print('done.')
 
