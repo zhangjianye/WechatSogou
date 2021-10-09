@@ -78,7 +78,7 @@ def __parse_argv(argv):
                 break
             args['t'] = val
         elif arg in ('-f', '--filename'):
-            if 't' in args:
+            if 'f' in args:
                 conflicting = True
                 break
             args['f'] = val
