@@ -21,9 +21,11 @@ def __parse_argv(argv):
     usage: run.py -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>]
            run.py -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]
            run.py -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]
+           run.py -r -o <object name>
     """
-    short_opts = 'hscgk:o:b:e:t:f:'
-    long_opts = ['help', 'search', 'convert', 'generate', 'key=', 'object=', 'begin=', 'end=', 'template=', 'filename=']
+    short_opts = 'hscgrk:o:b:e:t:f:'
+    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'key=', 'object=', 'begin=', 'end=', 'template=',
+                 'filename=']
     try:
         opts, values = getopt.getopt(argv, short_opts, long_opts)
     except getopt.GetoptError:
@@ -82,6 +84,11 @@ def __parse_argv(argv):
                 conflicting = True
                 break
             args['f'] = val
+        elif arg in ('-r', '--replenish'):
+            if 'm' in args:
+                conflicting = True
+                break
+            args['m'] = 'r'
     if conflicting:
         print('arguments conflicted.')
         print(usage)
@@ -120,6 +127,8 @@ def __do(args):
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
         __generate(object_name, template, filename, begin_index, end_index)
+    elif args['m'] == 'r':
+        __replenish(object_name)
 
 
 def main(argv):
@@ -133,6 +142,7 @@ def __search(object_name, keywords, begin_page, end_page):
     assert len(keywords) > 0
     ws_api = WechatSogouAPI(captcha_break_time=19, keyword=keywords[0])
     articles_set = storage.Storage().load_article_set(object_name)
+
     # result = []
 
     def save(keyword, articles):
@@ -177,3 +187,17 @@ def __convert(object_name, keys, begin_index, end_index):
 def __generate(object_name, template, filename, begin_index, end_index):
     articles = storage.Storage().load_articles(object_name, begin_index, end_index)
     output.output_html(object_name, filename, template, articles)
+
+
+def __replenish(object_name):
+    ws_api = WechatSogouAPI(captcha_break_time=19, need_login=False)
+    articles = storage.Storage().load_articles(object_name)
+
+    def save(a):
+        storage.Storage().update_article_gzh(a)
+
+    for article in articles:
+        if len(article.gzh.wechat_id) == 0 or len(article.gzh.principal) == 0 and len(article.gzh.name) == 0:
+            if acquire.replenish_gzh(ws_api, article):
+                print('article {} replenished gzh succeed, gzh = {}'.format(article, article.gzh))
+                save(article)

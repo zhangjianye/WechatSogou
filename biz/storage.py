@@ -92,6 +92,17 @@ class Storage(metaclass=Singleton):
         update = {'$set': {'url': article.url}}
         self._db_articles.update_one(query, update)
 
+    def update_article_gzh(self, article: Article):
+        query = {'_id': article.id}
+        update = {'$set': {
+            'gzh.wechat_id': article.gzh.wechat_id,
+            'gzh.name': article.gzh.name,
+            'gzh.avatar': article.gzh.avatar,
+            'gzh.principal': article.gzh.principal,
+            'gzh.desc': article.gzh.desc
+        }}
+        self._db_articles.update_one(query, update)
+
     def __load_object(self, object_name):
         return self._db_objects.find_one({'name': object_name})
 

@@ -26,7 +26,7 @@ import os
 
 
 class WechatSogouAPI(object):
-    def __init__(self, captcha_break_time=1, headers=None, cookies=None, keyword='', **kwargs):
+    def __init__(self, captcha_break_time=1, headers=None, cookies=None, keyword='', need_login=True, **kwargs):
         """初始化参数
 
         Parameters
@@ -54,13 +54,13 @@ class WechatSogouAPI(object):
         self.keyword = keyword
         if len(self.keyword) == 0:
             self.keyword = '百度'
-        self.wechat_login()
+        self.prepare_wechat_environment(need_login)
 
     def reset_session(self):
         self.cookies.clear()
-        self.wechat_login()
+        self.prepare_wechat_environment()
 
-    def wechat_login(self):
+    def prepare_wechat_environment(self, login):
         '''
         Login wechat by automatically inputing accounts and keywords and manully scanning QR code， and then you can
         get the cookie information, save it in local file in order to simulate loginning and crawling……
@@ -73,9 +73,10 @@ class WechatSogouAPI(object):
         driver = webdriver.Chrome()
         driver.get("https://weixin.sogou.com/")
         time.sleep(2)
-        login_button = driver.find_element_by_id('loginBtn')
-        if login_button:
-            login_button.click()
+        if login:
+            login_button = driver.find_element_by_id('loginBtn')
+            if login_button:
+                login_button.click()
         # print("正在自动输入账号、密码......请勿操作")
         # driver.find_element_by_name("account").clear()
         # driver.find_element_by_name("account").send_keys(self.__username)
@@ -89,17 +90,18 @@ class WechatSogouAPI(object):
         print("请拿手机扫码二维码登录公众号")
         count = 0
         while True:
-            time.sleep(3)
-            try:
-                login_yes = driver.find_element_by_id('login_yes')
-                if login_yes:
-                    if login_yes.is_displayed():
-                        print("登录成功")
-                        # break
-                    else:
-                        continue
-            except selenium.common.exceptions.WebDriverException:
-                continue
+            if login:
+                time.sleep(3)
+                try:
+                    login_yes = driver.find_element_by_id('login_yes')
+                    if login_yes:
+                        if login_yes.is_displayed():
+                            print("登录成功")
+                            # break
+                        else:
+                            continue
+                except selenium.common.exceptions.WebDriverException:
+                    continue
 
             try:
                 time.sleep(2)
@@ -511,7 +513,7 @@ class WechatSogouAPI(object):
         list[dict]
             {
                 'open_id': '', # 微信号唯一ID
-                'profile_url': '',  # 最近10条群发页链接
+                'profile_url': '',  # profile
                 'headimage': '',  # 头像
                 'wechat_name': '',  # 名称
                 'wechat_id': '',  # 微信id
@@ -856,6 +858,8 @@ class WechatSogouAPI(object):
         ----------
         profile_url : str
             URL
+        wechat_name : str
+            name of gzh
         unlock_callback : callable
             处理出现验证码页面的函数，参见 unlock_callback_example
         identify_image_callback : callable
@@ -893,7 +897,7 @@ class WechatSogouAPI(object):
             result = WechatSogouStructuring.get_gzh_detail(resp.text)
         except WechatSogouException as e:
             print(e)
-        if 'wechat_id' not in result or len(result['wechat_id']) == 0:
+        if ('wechat_id' not in result or len(result['wechat_id']) == 0) and len(wechat_name) > 0:
             # get wechat_id by search_gzh
             name = wechat_name
             if 'name' in result and len(result['name']) > 0:

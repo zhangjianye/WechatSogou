@@ -5,21 +5,24 @@ from wechatsogou.request import WechatSogouRequest
 import time
 
 
+def get_account_detail(ws_api: WechatSogouAPI, profile_url, gzh, wechat_name=''):
+    if len(profile_url) > 0:
+        # time.sleep(5)
+        # print('title={}, profile_url={}'.format(a.title, a.profile_url))
+        try:
+            result = ws_api.get_gzh_detail(profile_url, wechat_name=wechat_name)
+            gzh.name = result.get('name', '')
+            gzh.avatar = result.get('avatar', '')
+            gzh.wechat_id = result.get('wechat_id', '').removeprefix('微信号: ')
+            gzh.desc = result.get('desc', '')
+            gzh.principal = result.get('principal', '')
+            return True
+        except WechatSogouException as e:
+            print(e)
+    return False
+
+
 def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, specified_page=0):
-    def get_account_detail(a: Article):
-        if len(a.profile_url) > 0:
-            # time.sleep(5)
-            # print('title={}, profile_url={}'.format(a.title, a.profile_url))
-            try:
-                result = ws_api.get_gzh_detail(a.profile_url, wechat_name=a.wechat_name)
-                a.gzh.name = result.get('name', '')
-                a.gzh.avatar = result.get('avatar', '')
-                a.gzh.wechat_id = result.get('wechat_id', '').removeprefix('微信号: ')
-                a.gzh.desc = result.get('desc', '')
-                a.gzh.principal = result.get('principal', '')
-                # a.gzh.qr_code = result.get('qr_code', '')
-            except WechatSogouException as e:
-                print(e)
 
     articles = []
     # images = {}
@@ -66,7 +69,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
                 except WechatSogouException:
                     print('article url expired, title={}, url={}'.format(article.title, article.temp_url))
                     pass
-            get_account_detail(article)
+            get_account_detail(ws_api, article.profile_url, article.gzh, article.wechat_name)
             articles.append(article)
         print('continue_search={}'.format(continue_search))
         if count == 0 or (0 < page_limit <= page) or specified_page > 0 or not continue_search:
@@ -114,3 +117,20 @@ def search_list(ws_api: WechatSogouAPI, index, page_count):
                 print('******** exception occurred: {} ********'.format(e))
         print('page {}, get {} articles'.format(page, len(info)))
         print('======================================')
+
+
+def replenish_gzh(ws_api: WechatSogouAPI, article: Article) -> bool:
+    gzhs = ws_api.search_gzh(article.wechat_name if len(article.gzh.wechat_id) == 0 else article.gzh.wechat_id)
+    profile_url = ''
+    for gzh in gzhs:
+        if gzh['wechat_id'] == article.gzh.wechat_id or gzh['wechat_name'] == article.wechat_name:
+            profile_url = gzh['profile_url']
+            article.gzh.wechat_id = gzh['wechat_id']
+            article.gzh.name = gzh['wechat_name']
+            article.gzh.principal = gzh['authentication']
+            article.gzh.avatar = gzh['headimage']
+            article.gzh.desc = gzh['introduction']
+            break
+    if len(article.gzh.principal) == 0 or len(article.gzh.name) == 0:
+        return get_account_detail(ws_api, profile_url, article.gzh)
+    return True

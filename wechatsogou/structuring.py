@@ -73,7 +73,7 @@ class WechatSogouStructuring(object):
         lis = page.xpath('//ul[@class="news-list2"]/li')
         relist = []
         for li in lis:
-            url = get_first_of_element(li, 'div/div[1]/a/@href')
+            url = get_first_of_element(li, 'div/div[2]/p[1]/a/@href')
             headimage = format_image_url(get_first_of_element(li, 'div/div[1]/a/img/@src'))
             wechat_name = get_elem_text(get_first_of_element(li, 'div/div[2]/p[1]'))
             info = get_elem_text(get_first_of_element(li, 'div/div[2]/p[2]'))

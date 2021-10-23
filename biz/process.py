@@ -3,7 +3,6 @@ from biz.datatype import Article
 
 
 def process_qrcode(articles: [Article]):
-    # TODO: implement this asynchronously
     for article in articles:
         gzh = article.gzh
         if gzh and len(gzh.wechat_id) > 0:
