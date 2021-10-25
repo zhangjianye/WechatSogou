@@ -154,7 +154,7 @@ class WechatSogouAPI(object):
         #     f.flush()
         # print("cookies已存入cookie.txt", flush=True)
 
-        # driver.quit()
+        driver.quit()
 
         # prepare JSESSIONID
         # url = 'https://weixin.sogou.com/'

@@ -79,7 +79,13 @@ class WechatSogouStructuring(object):
             info = get_elem_text(get_first_of_element(li, 'div/div[2]/p[2]'))
             qrcode = get_first_of_element(li, 'div/div[3]/span/img[1]/@src')
             introduction = get_elem_text(get_first_of_element(li, 'dl[1]/dd'))
-            authentication = get_first_of_element(li, 'dl[2]/dd/text()')
+            dls = li.xpath('dl')
+            authentication = ''
+            for dl in dls:
+                dt_text = get_elem_text(get_first_of_element(dl, 'dt'))
+                if '认证' in dt_text:
+                    authentication = get_elem_text(get_first_of_element(dl, 'dd'))
+                    break
 
             relist.append({
                 'open_id': headimage.split('/')[-1],
@@ -562,9 +568,9 @@ class WechatSogouStructuring(object):
         page = etree.HTML(text)
         profile_name = get_elem_text(get_first_of_element(page, '//strong[@class="profile_nickname"]'))
         profile_info = get_first_of_element(page, '//div[@class="page_profile_info"]')
-        if profile_info:
+        if len(profile_info) > 0:
             profile_area = get_first_of_element(profile_info, 'div[1]/div[@class="profile_info_area"]')
-            if profile_area:
+            if len(profile_area) > 0:
                 profile_avatar = get_first_of_element(profile_area, 'div[1]/span/img/@src')
                 profile_wechat_id = get_first_of_element(profile_area, 'div[1]/div/p/text()')
                 profile_wechat_id.removeprefix('微信号: ')
