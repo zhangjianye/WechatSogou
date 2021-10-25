@@ -125,11 +125,11 @@ def replenish_gzh(ws_api: WechatSogouAPI, article: Article) -> bool:
     for gzh in gzhs:
         if gzh['wechat_id'] == article.gzh.wechat_id or gzh['wechat_name'] == article.wechat_name:
             profile_url = gzh['profile_url']
-            article.gzh.wechat_id = gzh['wechat_id']
-            article.gzh.name = gzh['wechat_name']
-            article.gzh.principal = gzh['authentication']
-            article.gzh.avatar = gzh['headimage']
-            article.gzh.desc = gzh['introduction']
+            article.gzh.wechat_id = gzh.get('wechat_id', article.gzh.wechat_id)
+            article.gzh.name = gzh.get('wechat_name', article.gzh.name)
+            article.gzh.principal = gzh.get('authentication', article.gzh.principal)
+            article.gzh.avatar = gzh.get('headimage', article.gzh.avatar)
+            article.gzh.desc = gzh.get('introduction', article.gzh.desc)
             break
     if len(article.gzh.principal) == 0 or len(article.gzh.name) == 0:
         return get_account_detail(ws_api, profile_url, article.gzh)
