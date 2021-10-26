@@ -131,6 +131,6 @@ def replenish_gzh(ws_api: WechatSogouAPI, article: Article) -> bool:
             article.gzh.avatar = gzh.get('headimage', article.gzh.avatar)
             article.gzh.desc = gzh.get('introduction', article.gzh.desc)
             break
-    if len(article.gzh.principal) == 0 or len(article.gzh.name) == 0:
-        return get_account_detail(ws_api, profile_url, article.gzh)
+    # if len(article.gzh.principal) == 0 or len(article.gzh.name) == 0:
+    #     return get_account_detail(ws_api, profile_url, article.gzh)
     return True
