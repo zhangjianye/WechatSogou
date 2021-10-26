@@ -44,6 +44,7 @@ class WechatSogouAPI(object):
         self.requests_kwargs = kwargs
         self.headers = headers
         self.cookies = cookies
+        self.need_login = need_login
         if self.cookies is None:
             self.cookies = {}
         if self.headers:
@@ -54,13 +55,13 @@ class WechatSogouAPI(object):
         self.keyword = keyword
         if len(self.keyword) == 0:
             self.keyword = '百度'
-        self.prepare_wechat_environment(need_login)
+        self.prepare_wechat_environment()
 
     def reset_session(self):
         self.cookies.clear()
         self.prepare_wechat_environment()
 
-    def prepare_wechat_environment(self, login):
+    def prepare_wechat_environment(self):
         '''
         Login wechat by automatically inputing accounts and keywords and manully scanning QR code， and then you can
         get the cookie information, save it in local file in order to simulate loginning and crawling……
@@ -73,7 +74,7 @@ class WechatSogouAPI(object):
         driver = webdriver.Chrome()
         driver.get("https://weixin.sogou.com/")
         time.sleep(2)
-        if login:
+        if self.need_login:
             login_button = driver.find_element_by_id('loginBtn')
             if login_button:
                 login_button.click()
@@ -90,7 +91,7 @@ class WechatSogouAPI(object):
         print("请拿手机扫码二维码登录公众号")
         count = 0
         while True:
-            if login:
+            if self.need_login:
                 time.sleep(3)
                 try:
                     login_yes = driver.find_element_by_id('login_yes')
