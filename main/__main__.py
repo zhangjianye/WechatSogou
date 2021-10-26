@@ -18,10 +18,10 @@ def __connect_db():
 def __parse_argv(argv):
     args = {}
     usage = """
-    usage: run.py -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>]
-           run.py -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]
-           run.py -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]
-           run.py -r -o <object name>
+    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>]
+           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]
+           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]
+           wx.exe -r -o <object name>
     """
     short_opts = 'hscgrk:o:b:e:t:f:'
     long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'key=', 'object=', 'begin=', 'end=', 'template=',
