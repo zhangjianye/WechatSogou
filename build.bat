@@ -1,0 +1,1 @@
+pyinstaller bin\run.py --name wx.exe --onefile
