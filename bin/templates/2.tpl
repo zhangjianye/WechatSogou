@@ -131,11 +131,9 @@
         <thead>
         <tr>
             <th class="number">编号</th>
-            <th class="img">图片</th>
             <th class="title">标题</th>
             <th class="time">发布时间</th>
             <th class="name">公众号名称</th>
-            <th class="name">公众号正式名称</th>
             <th class="v">加V</th>
             <th class="wechat-id">微信号</th>
             <th class="principal">账号主体</th>
@@ -148,19 +146,17 @@
         % for article in articles:
             <tr>
                 <td class="number">{{article['number']}}</td>
-                <td class="image">
-                    % for img in article['images']:
-                    <div class="thumb_container"><img class="thumb" src="{{img}}"></div>
-                    % end
-                </td>
                 % if len(article['url']) > 0:
                 <td><a href="{{article['url']}}" target="_blank">{{article['title']}}</a></td>
                 % else:
                 <td>{{article['title']}}</td>
                 % end
                 <td>{{article['time']}}</td>
-                <td>{{article['wechat_name']}}</td>
+                % if len(article['gzh_name']) > 0:
                 <td>{{article['gzh_name']}}</td>
+                % else:
+                <td>{{article['wechat_name']}}</td>
+                % end
                 <td class="isv">{{article['isv']}}</td>
                 <td>{{article['wechat_id']}}</td>
                 <td>{{article['principal']}}</td>
