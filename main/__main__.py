@@ -18,14 +18,14 @@ def __connect_db():
 def __parse_argv(argv):
     args = {}
     usage = """
-    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>]
-           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]
-           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]
-           wx.exe -r -o <object name>
+    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>] [-a <batch name>]
+           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]  [-a <batch name>]
+           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]  [-a <batch name>]
+           wx.exe -r -o <object name>  [-a <batch name>]
     """
-    short_opts = 'hscgrk:o:b:e:t:f:'
+    short_opts = 'hscgrk:o:b:e:t:f:a:'
     long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'key=', 'object=', 'begin=', 'end=', 'template=',
-                 'filename=']
+                 'filename=', 'batch=']
     try:
         opts, values = getopt.getopt(argv, short_opts, long_opts)
     except getopt.GetoptError:
@@ -89,6 +89,11 @@ def __parse_argv(argv):
                 conflicting = True
                 break
             args['m'] = 'r'
+        elif arg in ('-a', '--batch'):
+            if 'a' in args:
+                conflicting = True
+                break
+            args['a'] = val
     if conflicting:
         print('arguments conflicted.')
         print(usage)
@@ -109,26 +114,27 @@ def __parse_argv(argv):
 
 def __do(args):
     object_name = args['o']
+    batch = args['a'] if 'a' in args else ''
     if args['m'] == 's':
         keywords = list(args['k'])
         begin_page = args['b'] if 'b' in args else 1
         if begin_page < 1:
             begin_page = 1
         end_page = args['e'] if 'e' in args else 0
-        __search(object_name, keywords, begin_page, end_page)
+        __search(object_name, keywords, begin_page, end_page, batch)
     elif args['m'] == 'c':
         keys = list(args['k'])
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
-        __convert(object_name, keys, begin_index, end_index)
+        __convert(object_name, keys, begin_index, end_index, batch)
     elif args['m'] == 'g':
         template = args['t']
         filename = args['f'] if 'f' in args else object_name
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
-        __generate(object_name, template, filename, begin_index, end_index)
+        __generate(object_name, template, filename, begin_index, end_index, batch)
     elif args['m'] == 'r':
-        __replenish(object_name)
+        __replenish(object_name, batch)
 
 
 def main(argv):
@@ -138,15 +144,15 @@ def main(argv):
     __do(args)
 
 
-def __search(object_name, keywords, begin_page, end_page):
+def __search(object_name, keywords, begin_page, end_page, batch):
     assert len(keywords) > 0
-    ws_api = WechatSogouAPI(captcha_break_time=19, keyword=keywords[0])
+    ws_api = WechatSogouAPI(captcha_break_time=5, keyword=keywords[0])
     articles_set = storage.Storage().load_article_set(object_name)
 
     # result = []
 
     def save(keyword, articles):
-        storage.Storage().save_articles(object_name, keyword, articles)
+        storage.Storage().save_articles(object_name, keyword, articles, batch)
 
     for k in keywords:
         __search_single_keyword(ws_api, k, begin_page, end_page, lambda x: save(k, x), articles_set)
@@ -168,8 +174,8 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
     print('search {} end at page {}'.format(keyword, page - 1))
 
 
-def __convert(object_name, keys, begin_index, end_index):
-    articles = storage.Storage().load_articles(object_name, begin_index, end_index, empty_url=True)
+def __convert(object_name, keys, begin_index, end_index, batch):
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index, empty_url=True, batch=batch)
     converter = convert.Converter(keys)
     converter.convert(articles, lambda x: storage.Storage().update_article_url(x))
     # for a in articles:
@@ -184,14 +190,14 @@ def __convert(object_name, keys, begin_index, end_index):
     #             break
 
 
-def __generate(object_name, template, filename, begin_index, end_index):
-    articles = storage.Storage().load_articles(object_name, begin_index, end_index)
+def __generate(object_name, template, filename, begin_index, end_index, batch):
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index, batch=batch)
     output.output_html(object_name, filename, template, articles)
 
 
-def __replenish(object_name):
-    ws_api = WechatSogouAPI(captcha_break_time=19, need_login=False)
-    articles = storage.Storage().load_articles(object_name)
+def __replenish(object_name, batch):
+    ws_api = WechatSogouAPI(captcha_break_time=5, need_login=False)
+    articles = storage.Storage().load_articles(object_name, batch=batch)
 
     def save(a):
         storage.Storage().update_article_gzh(a)

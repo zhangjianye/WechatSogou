@@ -38,7 +38,7 @@ class Storage(metaclass=Singleton):
                 result.add(combination)
         return result
 
-    def save_articles(self, object_name, keyword, articles: [Article]):
+    def save_articles(self, object_name, keyword, articles: [Article], batch):
         object_id, index = self.__load_or_create_object(object_name)
         records = []
         for a in articles:
@@ -62,13 +62,14 @@ class Storage(metaclass=Singleton):
                     'desc': a.gzh.desc,
                     'qr_code': a.gzh.qr_code
                 },
-                'imgs': a.imgs
+                'imgs': a.imgs,
+                'batch': batch,
             }
             records.append(record)
         self._db_articles.insert_many(records)
         self.__modify_object_last_index(object_id, index)
 
-    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False):
+    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False, batch=''):
         object_id = self.__get_object_id(object_name)
         query = {
             'object_id': object_id,
@@ -81,6 +82,8 @@ class Storage(metaclass=Singleton):
                 query['index']['$lte'] = end_index
         if empty_url:
             query['url'] = ''
+        if len(batch) > 0:
+            query['batch'] = batch
         if limit > 0:
             result = self._db_articles.find(query).limit(limit)
         else:
