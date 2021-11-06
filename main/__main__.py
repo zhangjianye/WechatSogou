@@ -233,5 +233,5 @@ def __information(object_name, batch):
             if 'keywords' in v:
                 for k1, v1 in v['keywords'].items:
                     print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'], 'YES' if v1['finished'] else 'NO'))
-            print('total count: {}'.format(v['total_count']))
-            print('miss-principal count: {}'.format(v['miss_principal_count']))
+            print('        total count: {}'.format(v['total_count']))
+            print('        miss-principal count: {}'.format(v['miss_principal_count']))
