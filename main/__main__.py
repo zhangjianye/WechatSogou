@@ -22,10 +22,11 @@ def __parse_argv(argv):
            wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]  [-a <batch name>]
            wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]  [-a <batch name>]
            wx.exe -r -o <object name>  [-a <batch name>]
+           wx.exe -i -o <object name>  [-a <batch name>]
     """
-    short_opts = 'hscgrk:o:b:e:t:f:a:'
-    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'key=', 'object=', 'begin=', 'end=', 'template=',
-                 'filename=', 'batch=']
+    short_opts = 'hscgrik:o:b:e:t:f:a:'
+    long_opts = ['help', 'search', 'convert', 'generate', 'replenish',  'information', 'key=', 'object=', 'begin=',
+                 'end=', 'template=', 'filename=', 'batch=']
     try:
         opts, values = getopt.getopt(argv, short_opts, long_opts)
     except getopt.GetoptError:
@@ -89,6 +90,11 @@ def __parse_argv(argv):
                 conflicting = True
                 break
             args['m'] = 'r'
+        elif arg in ('-i', '--information'):
+            if 'm' in args:
+                conflicting = True
+                break
+            args['m'] = 'i'
         elif arg in ('-a', '--batch'):
             if 'a' in args:
                 conflicting = True
@@ -114,27 +120,33 @@ def __parse_argv(argv):
 
 def __do(args):
     object_name = args['o']
-    batch = args['a'] if 'a' in args else ''
     if args['m'] == 's':
         keywords = list(args['k'])
         begin_page = args['b'] if 'b' in args else 1
         if begin_page < 1:
             begin_page = 1
         end_page = args['e'] if 'e' in args else 0
+        batch = args['a'] if 'a' in args else 'default'
         __search(object_name, keywords, begin_page, end_page, batch)
     elif args['m'] == 'c':
         keys = list(args['k'])
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
+        batch = args['a'] if 'a' in args else 'default'
         __convert(object_name, keys, begin_index, end_index, batch)
     elif args['m'] == 'g':
         template = args['t']
         filename = args['f'] if 'f' in args else object_name
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
+        batch = args['a'] if 'a' in args else 'default'
         __generate(object_name, template, filename, begin_index, end_index, batch)
     elif args['m'] == 'r':
+        batch = args['a'] if 'a' in args else 'default'
         __replenish(object_name, batch)
+    elif args['m'] == 'i':
+        batch = args['a']
+        __information(object_name, batch)
 
 
 def main(argv):
@@ -151,11 +163,11 @@ def __search(object_name, keywords, begin_page, end_page, batch):
 
     # result = []
 
-    def save(keyword, articles):
-        storage.Storage().save_articles(object_name, keyword, articles, batch)
+    def save(keyword, articles, page, finished):
+        storage.Storage().save_articles(object_name, keyword, articles, batch, page, finished)
 
     for k in keywords:
-        __search_single_keyword(ws_api, k, begin_page, end_page, lambda x: save(k, x), articles_set)
+        __search_single_keyword(ws_api, k, begin_page, end_page, lambda x, y, z: save(k, x, y, z), articles_set)
 
 
 def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, article_set):
@@ -165,7 +177,7 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
         articles, continue_search = acquire.search_article(ws_api, keyword, article_set, specified_page=page)
         if len(articles) > 0:
             process.process_qrcode(articles)
-            save_method(articles)
+            save_method(articles, page, not continue_search)
             # result.extend(articles)
             # row = output.output_excel(workbook, sheet, articles, row)
         # else:
@@ -207,3 +219,19 @@ def __replenish(object_name, batch):
             if acquire.replenish_gzh(ws_api, article):
                 print('article {} replenished gzh succeed, gzh = {}'.format(article, article.gzh))
                 save(article)
+
+
+def __information(object_name, batch):
+    info = storage.Storage().load_object_info(object_name, batch)
+    if info is None:
+        print('{} not found'.format(object_name))
+        return
+    print('object :{}'.format(object_name))
+    if 'batches' in info:
+        for k, v in info['batches'].items():
+            print('    batch {}:'.format(k))
+            if 'keywords' in v:
+                for k1, v1 in v['keywords'].items:
+                    print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'], 'YES' if v1['finished'] else 'NO'))
+            print('total count: {}'.format(v['total_count']))
+            print('miss-principal count: {}'.format(v['miss_principal_count']))

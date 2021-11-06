@@ -38,7 +38,7 @@ class Storage(metaclass=Singleton):
                 result.add(combination)
         return result
 
-    def save_articles(self, object_name, keyword, articles: [Article], batch):
+    def save_articles(self, object_name, keyword, articles: [Article], batch, last_page, finished):
         object_id, index = self.__load_or_create_object(object_name)
         records = []
         for a in articles:
@@ -67,7 +67,7 @@ class Storage(metaclass=Singleton):
             }
             records.append(record)
         self._db_articles.insert_many(records)
-        self.__modify_object_last_index(object_id, index)
+        self.__update_object_info(object_id, index, batch, keyword, last_page, finished)
 
     def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False, batch=''):
         object_id = self.__get_object_id(object_name)
@@ -106,6 +106,34 @@ class Storage(metaclass=Singleton):
         }}
         self._db_articles.update_one(query, update)
 
+    def load_object_info(self, object_name, batch):
+        obj = self.__load_object(object_name)
+        if obj is None:
+            return None
+        object_id = obj['_id']
+        result = {'object': object_name, 'batches': {}}
+
+        def complement(b, batch_name):
+            total_count = self.__load_articles_count(object_id, batch_name)
+            miss_principal_count = self.__load_articles_count(object_id, batch_name, empty_principal=True)
+            b['total_count'] = total_count
+            b['miss_principal_count'] = miss_principal_count
+            result['batches'][batch_name if len(batch_name) > 0 else 'NULL'] = b
+
+        if len(batch) > 0:
+            if 'batches' in result:
+                batches = result['batches']
+                if batch in batches:
+                    complement(batches[batch], batch)
+                    return result
+        if 'batches' in result:
+            batches = result['batches']
+            for k, v in batches:
+                complement(v, k)
+        else:
+            complement({}, '')
+        return result
+
     def __load_object(self, object_name):
         return self._db_objects.find_one({'name': object_name})
 
@@ -125,15 +153,29 @@ class Storage(metaclass=Singleton):
             last_index = object['last_index']
         return object_id, last_index
 
-    def __modify_object_last_index(self, object_id, last_index):
-        query = {'_id': object_id}
-        update = {'$set': {'last_index': last_index}}
-        self._db_objects.update_one(query, update)
-
     def __load_articles_for_set(self, object_id):
         query = {'object_id': object_id}
         columns = {'_id': 0, 'title': 1, 'wechat_name': 1, 'time': 1}
         return self._db_articles.find(query, columns)
+
+    def __update_object_info(self, object_id, last_index, batch, keyword, last_page, finished):
+        query = {'_id': object_id}
+        update = {'$set': {
+            'last_index': last_index,
+            'batches.' + batch + 'keywords.' + keyword: {
+                'last_page': last_page,
+                'finished': True if finished else False
+            }
+        }}
+        return self._db_objects.update_one(query, update)
+
+    def __load_articles_count(self, object_id, batch, empty_principal=False):
+        query = {'object_id': object_id}
+        if len(batch) > 0:
+            query['batch'] = batch
+        if empty_principal:
+            query['gzh.principal'] = ''
+        return self._db_articles.count_documents(query)
 
     @staticmethod
     def __dict_to_article(d) -> Article:
