@@ -512,18 +512,19 @@ class WechatSogouStructuring(object):
                     # raise WechatSogouException('img_url [{}] 不合法'.format(img_url))
                 all_img_set.add(img_url)
 
-        backgroud_image = content_text.find_all(style=re.compile("background-image")) or []
-        for ele in backgroud_image:
-            # 删除部分属性
-            if ele.attrs.get('data-src'):
-                del ele.attrs['data-src']
-
-            if ele.attrs.get('data-wxurl'):
-                del ele.attrs['data-wxurl']
-            img_url = re.findall(backgroud_image_p, str(ele))
-            if not img_url:
-                continue
-            all_img_set.add(img_url[0])
+        # backgroud_image = content_text.find_all(style=re.compile("background-image")) or []
+        # for ele in backgroud_image:
+        #     # 删除部分属性
+        #     if ele.attrs.get('data-src'):
+        #         del ele.attrs['data-src']
+        #
+        #     if ele.attrs.get('data-wxurl'):
+        #         del ele.attrs['data-wxurl']
+        #     print("background_image: {}".format(ele))
+        #     img_url = re.findall(backgroud_image_p, str(ele))
+        #     if not img_url:
+        #         continue
+        #     all_img_set.add(img_url[0])
 
         # 4. 处理iframe
         # all_img_element = content_text.find_all('iframe') or []
