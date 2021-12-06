@@ -594,6 +594,7 @@ class WechatSogouStructuring(object):
             'principal': '',
             'qr_code': ''
         }
+
     @staticmethod
     def is_login(text):
         page = etree.HTML(text)

@@ -11,19 +11,20 @@ def get_account_detail(ws_api: WechatSogouAPI, profile_url, gzh, wechat_name='')
         # print('title={}, profile_url={}'.format(a.title, a.profile_url))
         try:
             result = ws_api.get_gzh_detail(profile_url, wechat_name=wechat_name)
-            gzh.name = result.get('name', '')
-            gzh.avatar = result.get('avatar', '')
-            gzh.wechat_id = result.get('wechat_id', '').removeprefix('微信号: ')
-            gzh.desc = result.get('desc', '')
-            gzh.principal = result.get('principal', '')
-            return True
+            if 'wechat_id' in result and len(result['wechat_id']) > 0:
+                gzh.name = result.get('name', '')
+                gzh.avatar = result.get('avatar', '')
+                gzh.wechat_id = result.get('wechat_id', '').removeprefix('微信号: ')
+                gzh.desc = result.get('desc', '')
+                gzh.principal = result.get('principal', '')
+                gzh.detailed = 1
+                return True
         except WechatSogouException as e:
             print(e)
     return False
 
 
-def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, specified_page=0):
-
+def search_article(ws_api: WechatSogouAPI, keyword, article_set, gzh_tester, gzh_saver, page_limit=0, specified_page=0):
     articles = []
     # images = {}
     # index = 0
@@ -61,7 +62,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
                 # print('get_article_content with title={}'.format(article.title))
                 try:
                     c = ws_api.get_article_content(article.temp_url)
-                    if c is not None: # and '该内容已被发布者删除' not in c['content_html']:
+                    if c is not None:  # and '该内容已被发布者删除' not in c['content_html']:
                         for item in c['content_img_list']:
                             article.imgs.append(item)
                     else:
@@ -69,7 +70,17 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, page_limit=0, s
                 except WechatSogouException:
                     print('article url expired, title={}, url={}'.format(article.title, article.temp_url))
                     pass
-            get_account_detail(ws_api, article.profile_url, article.gzh, article.wechat_name)
+            gzh_id = gzh_tester(article.wechat_name)
+            if gzh_id is None:
+                gzh = article.gzh
+                if not get_account_detail(ws_api, article.profile_url, gzh, article.wechat_name):
+                    gzh.name = article.wechat_name
+                gzh.isv = article.isv
+                id = gzh_saver(gzh)
+                article.gzh_id = id
+            else:
+                article.gzh_id = gzh_id
+
             articles.append(article)
         print('continue_search={}'.format(continue_search))
         if count == 0 or (0 < page_limit <= page) or specified_page > 0 or not continue_search:
@@ -119,17 +130,18 @@ def search_list(ws_api: WechatSogouAPI, index, page_count):
         print('======================================')
 
 
-def replenish_gzh(ws_api: WechatSogouAPI, article: Article) -> bool:
-    gzhs = ws_api.search_gzh(article.wechat_name if len(article.gzh.wechat_id) == 0 else article.gzh.wechat_id)
+def replenish_gzh(ws_api: WechatSogouAPI, account: Account) -> bool:
+    gzhs = ws_api.search_gzh(account.name if len(account.wechat_id) == 0 else account.wechat_id)
     profile_url = ''
     for gzh in gzhs:
-        if gzh['wechat_id'] == article.gzh.wechat_id or gzh['wechat_name'] == article.wechat_name:
+        if gzh['wechat_id'] == account.wechat_id or gzh['wechat_name'] == account.name:
             profile_url = gzh['profile_url']
-            article.gzh.wechat_id = gzh.get('wechat_id', article.gzh.wechat_id)
-            article.gzh.name = gzh.get('wechat_name', article.gzh.name)
-            article.gzh.principal = gzh.get('authentication', article.gzh.principal)
-            article.gzh.avatar = gzh.get('headimage', article.gzh.avatar)
-            article.gzh.desc = gzh.get('introduction', article.gzh.desc)
+            account.wechat_id = gzh.get('wechat_id', account.wechat_id)
+            account.name = gzh.get('wechat_name', account.name)
+            account.principal = gzh.get('authentication', account.principal)
+            account.avatar = gzh.get('headimage', account.avatar)
+            account.desc = gzh.get('introduction', account.desc)
+            account.detailed = 1
             break
     # if len(article.gzh.principal) == 0 or len(article.gzh.name) == 0:
     #     return get_account_detail(ws_api, profile_url, article.gzh)

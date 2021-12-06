@@ -25,7 +25,7 @@ def __parse_argv(argv):
            wx.exe -i -o <object name>  [-a <batch name>]
     """
     short_opts = 'hscgrik:o:b:e:t:f:a:'
-    long_opts = ['help', 'search', 'convert', 'generate', 'replenish',  'information', 'key=', 'object=', 'begin=',
+    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'information', 'key=', 'object=', 'begin=',
                  'end=', 'template=', 'filename=', 'batch=']
     try:
         opts, values = getopt.getopt(argv, short_opts, long_opts)
@@ -176,8 +176,17 @@ def __search(object_name, keywords, begin_page, end_page, batch):
 def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, article_set):
     page = begin_page
     continue_search = True
+
+    def test_gzh(name):
+        return storage.Storage().test_account(name)
+
+    def save_gzh(gzh):
+        storage.Storage().save_account(gzh)
+        return gzh.id
+
     while (page <= end_page or end_page == 0) and continue_search:
-        articles, continue_search = acquire.search_article(ws_api, keyword, article_set, specified_page=page)
+        articles, continue_search = acquire.search_article(ws_api, keyword, article_set, test_gzh, save_gzh,
+                                                           specified_page=page)
         if len(articles) > 0:
             process.process_qrcode(articles)
             save_method(articles, page, not continue_search)
@@ -206,22 +215,22 @@ def __convert(object_name, keys, begin_index, end_index, batch):
 
 
 def __generate(object_name, template, filename, begin_index, end_index, batch):
-    articles = storage.Storage().load_articles(object_name, begin_index, end_index, batch=batch)
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index, batch=batch, expand_account=True)
     output.output_html(object_name, filename, template, articles)
 
 
 def __replenish(object_name, batch):
     ws_api = WechatSogouAPI(captcha_break_time=5, need_login=False)
-    articles = storage.Storage().load_articles(object_name, batch=batch)
+    articles = storage.Storage().load_articles(object_name, batch=batch, expand_account=True)
 
-    def save(a):
-        storage.Storage().update_article_gzh(a)
+    def save(account):
+        storage.Storage().save_account(account)
 
     for article in articles:
-        if len(article.gzh.wechat_id) == 0 or len(article.gzh.principal) == 0 and len(article.gzh.name) == 0:
-            if acquire.replenish_gzh(ws_api, article):
+        if article.gzh.detailed == 0:
+            if acquire.replenish_gzh(ws_api, article.gzh):
                 print('article {} replenished gzh succeed, gzh = {}'.format(article, article.gzh))
-                save(article)
+                save(article.gzh)
 
 
 def __information(object_name, batch):
@@ -235,6 +244,7 @@ def __information(object_name, batch):
             print('    batch {}:'.format(k))
             if 'keywords' in v:
                 for k1, v1 in v['keywords'].items():
-                    print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'], 'YES' if v1['finished'] else 'NO'))
+                    print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'],
+                                                                                   'YES' if v1['finished'] else 'NO'))
             print('        total count: {}'.format(v['total_count']))
             print('        miss-principal count: {}'.format(v['miss_principal_count']))

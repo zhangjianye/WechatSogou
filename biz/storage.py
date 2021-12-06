@@ -14,6 +14,7 @@ class Storage(metaclass=Singleton):
             # self._db_articles.insert_one({'test': 'test'})
             self._db_objects = mongo_db['objects']
             # self._db_objects.insert_one({'test': 'test'})
+            self._db_accounts = mongo_db['accounts']
             self._connected = True
         except pymongo.errors.PyMongoError as err:
             print("connect to mongodb {} failed, err: {}".format(connection_string, err))
@@ -54,14 +55,15 @@ class Storage(metaclass=Singleton):
                 'wechat_name': a.wechat_name,
                 'profile_url': a.profile_url,
                 'isv': a.isv,
-                'gzh': {
-                    'name': a.gzh.name,
-                    'avatar': a.gzh.avatar,
-                    'principal': a.gzh.principal,
-                    'wechat_id': a.gzh.wechat_id,
-                    'desc': a.gzh.desc,
-                    'qr_code': a.gzh.qr_code
-                },
+                'gzh_id': a.gzh_id,
+                # 'gzh': {
+                #     'name': a.gzh.name,
+                #     'avatar': a.gzh.avatar,
+                #     'principal': a.gzh.principal,
+                #     'wechat_id': a.gzh.wechat_id,
+                #     'desc': a.gzh.desc,
+                #     'qr_code': a.gzh.qr_code
+                # },
                 'imgs': a.imgs,
                 'batch': batch,
             }
@@ -69,7 +71,8 @@ class Storage(metaclass=Singleton):
         self._db_articles.insert_many(records)
         self.__update_object_info(object_id, index, batch, keyword, last_page, finished)
 
-    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False, batch=''):
+    def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False, batch='',
+                      expand_account=False):
         object_id = self.__get_object_id(object_name)
         query = {
             'object_id': object_id,
@@ -88,7 +91,20 @@ class Storage(metaclass=Singleton):
             result = self._db_articles.find(query).limit(limit)
         else:
             result = self._db_articles.find(query)
-        return (self.__dict_to_article(d) for d in result)
+        articles = (self.__dict_to_article(d) for d in result)
+        if expand_account:
+            self.expand_account_of_articles(articles)
+        return articles
+
+    def expand_account_of_articles(self, articles):
+        cache = {}
+        for a in articles:
+            if a.gzh_id in a:
+                a.gzh = cache[a.gzh_id]
+            else:
+                gzh = self.load_account_by_id(a.gzh_id)
+                a.gzh = gzh
+                cache[a.gzh_id] = gzh
 
     def update_article_url(self, article: Article):
         query = {'_id': article.id}
@@ -105,6 +121,32 @@ class Storage(metaclass=Singleton):
             'gzh.desc': article.gzh.desc
         }}
         self._db_articles.update_one(query, update)
+
+    def test_account(self, name):
+        record = self._db_objects.find_one({'name': name})
+        return record['_id'] if record is not None else None
+
+    def load_account_by_name(self, name):
+        record = self._db_objects.find_one({'name': name})
+        if record is None:
+            return None
+        else:
+            return self.__dict_to_account(record)
+
+    def load_account_by_id(self, id):
+        record = self._db_objects.find_one({'_id': id})
+        if record is None:
+            return None
+        else:
+            return self.__dict_to_account(record)
+
+    def save_account(self, account: Account):
+        record = self.__account_to_dict(account)
+        if account.id is None:
+            account.id = self._db_accounts.insert_one(record).inserted_id
+        else:
+            query = {'_id': account.id}
+            self._db_accounts.update_one(query, {'$set': record})
 
     def load_object_info(self, object_name, batch):
         obj = self.__load_object(object_name)
@@ -180,13 +222,13 @@ class Storage(metaclass=Singleton):
     @staticmethod
     def __dict_to_article(d) -> Article:
         account = Account()
-        gzh = d['gzh']
-        account.name = gzh['name']
-        account.avatar = gzh['avatar']
-        account.principal = gzh['principal']
-        account.wechat_id = gzh['wechat_id']
-        account.desc = gzh['desc']
-        account.qr_code = gzh['qr_code']
+        # gzh = d['gzh']
+        # account.name = gzh['name']
+        # account.avatar = gzh['avatar']
+        # account.principal = gzh['principal']
+        # account.wechat_id = gzh['wechat_id']
+        # account.desc = gzh['desc']
+        # account.qr_code = gzh['qr_code']
         article = Article(id=d['_id'],
                           index=d['index'],
                           title=d['title'],
@@ -196,6 +238,34 @@ class Storage(metaclass=Singleton):
                           wechat_name=d['wechat_name'],
                           profile_url=d['profile_url'],
                           isv=d['isv'],
-                          gzh=account)
+                          # gzh=account,
+                          )
         article.imgs = d['imgs']
         return article
+
+    @staticmethod
+    def __dict_to_account(d) -> Account:
+        account = Account()
+        account.id = d['_id']
+        account.name = d['name']
+        account.avatar = d['avatar']
+        account.principal = d['principal']
+        account.wechat_id = d['wechat_id']
+        account.desc = d['desc']
+        account.qr_code = d['qr_code']
+        account.isv = d['isv']
+        account.detailed = d['detailed']
+        return account
+
+    @staticmethod
+    def __account_to_dict(account):
+        return {
+            'name': account.name,
+            'avatar': account.avatar,
+            'principal': account.principal,
+            'wechat_id': account.wechat_id,
+            'desc': account.desc,
+            'qr_code': account.qr_code,
+            'isv': account.isv,
+            'detailed': account.detailed
+        }

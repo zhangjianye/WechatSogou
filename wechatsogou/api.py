@@ -907,6 +907,10 @@ class WechatSogouAPI(object):
             for gzh in gzhs:
                 if gzh['wechat_name'] == name:
                     result['wechat_id'] = gzh['wechat_id']
+                    result['name'] = gzh['wechat_name']
+                    result['principal'] = gzh['authentication']
+                    result['avatar'] = gzh['headimage']
+                    result['desc'] = gzh['introduction']
                     break
         # if decode_url and result['qr_code'].startswith('/'):
         #     result['qr_code'] = 'https://mp.weixin.qq.com{}'.format(result['qr_code'])

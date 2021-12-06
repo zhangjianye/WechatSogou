@@ -5,12 +5,15 @@ import bson
 
 @dataclass
 class Account:
+    id: bson.objectid = None
     name = ''
     avatar = ''
     principal = ''
     wechat_id = ''
     desc = ''
     qr_code = ''
+    isv = 0
+    detailed = 0
 
     def __repr__(self):
         return 'name=\'{}\', principal=\'{}\', wechat_id=\'{}\', desc=\'{}\''.format(self.name, self.principal, self.wechat_id, self.desc)
@@ -27,6 +30,7 @@ class Article:
     wechat_name: str
     profile_url: str
     isv: int
+    gzh_id: bson.objectid
     gzh: Account
     imgs: []
 
@@ -40,6 +44,7 @@ class Article:
         self.wechat_name = wechat_name
         self.profile_url = profile_url
         self.isv = isv
+        self.gzh_id = None
         if gzh is None:
             self.gzh = Account()
         else:
