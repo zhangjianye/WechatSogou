@@ -8,8 +8,8 @@ from common import tools
 
 
 def __connect_db():
-    # connection_string = 'mongodb://127.0.0.1:27017'
-    connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
+    connection_string = 'mongodb://127.0.0.1:27017'
+    # connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
     if not storage.Storage(connection_string).connected():
         print('connect to db {} failed.'.format(connection_string))
         sys.exit(1)
@@ -145,7 +145,7 @@ def __do(args):
         batch = args['a'] if 'a' in args else 'default'
         __replenish(object_name, batch)
     elif args['m'] == 'i':
-        batch = args['a']
+        batch = args['a'] if 'a' in args else ''
         __information(object_name, batch)
 
 
@@ -158,7 +158,10 @@ def main(argv):
 
 def __search(object_name, keywords, begin_page, end_page, batch):
     assert len(keywords) > 0
-    ws_api = WechatSogouAPI(captcha_break_time=5, keyword=keywords[0])
+    need_login = True
+    if 0 < end_page <= 10:
+        need_login = False
+    ws_api = WechatSogouAPI(captcha_break_time=5, keyword=keywords[0], need_login=need_login)
     articles_set = storage.Storage().load_article_set(object_name)
 
     # result = []
@@ -231,7 +234,7 @@ def __information(object_name, batch):
         for k, v in info['batches'].items():
             print('    batch {}:'.format(k))
             if 'keywords' in v:
-                for k1, v1 in v['keywords'].items:
+                for k1, v1 in v['keywords'].items():
                     print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'], 'YES' if v1['finished'] else 'NO'))
             print('        total count: {}'.format(v['total_count']))
             print('        miss-principal count: {}'.format(v['miss_principal_count']))

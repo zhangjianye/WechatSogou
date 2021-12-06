@@ -111,7 +111,7 @@ class Storage(metaclass=Singleton):
         if obj is None:
             return None
         object_id = obj['_id']
-        result = {'object': object_name, 'batches': {}}
+        result = {'object': object_name, 'batches': obj['batches']}
 
         def complement(b, batch_name):
             total_count = self.__load_articles_count(object_id, batch_name)
@@ -128,7 +128,7 @@ class Storage(metaclass=Singleton):
                     return result
         if 'batches' in result:
             batches = result['batches']
-            for k, v in batches:
+            for k, v in batches.items():
                 complement(v, k)
         else:
             complement({}, '')
@@ -162,7 +162,7 @@ class Storage(metaclass=Singleton):
         query = {'_id': object_id}
         update = {'$set': {
             'last_index': last_index,
-            'batches.' + batch + 'keywords.' + keyword: {
+            'batches.' + batch + '.keywords.' + keyword: {
                 'last_page': last_page,
                 'finished': True if finished else False
             }

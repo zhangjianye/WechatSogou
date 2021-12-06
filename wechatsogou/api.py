@@ -618,7 +618,7 @@ class WechatSogouAPI(object):
             except WechatSogouException as e:
                 print(e)
                 continue
-            if not WechatSogouStructuring.is_login(resp.text):
+            if self.need_login and not WechatSogouStructuring.is_login(resp.text):
                 print('session not login, response text:{}'.format(resp.text))
                 self.reset_session()
             else:
