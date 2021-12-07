@@ -111,30 +111,30 @@ class Storage(metaclass=Singleton):
         update = {'$set': {'url': article.url}}
         self._db_articles.update_one(query, update)
 
-    def update_article_gzh(self, article: Article):
-        query = {'_id': article.id}
-        update = {'$set': {
-            'gzh.wechat_id': article.gzh.wechat_id,
-            'gzh.name': article.gzh.name,
-            'gzh.avatar': article.gzh.avatar,
-            'gzh.principal': article.gzh.principal,
-            'gzh.desc': article.gzh.desc
-        }}
-        self._db_articles.update_one(query, update)
+    # def update_article_gzh(self, article: Article):
+    #     query = {'_id': article.id}
+    #     update = {'$set': {
+    #         'gzh.wechat_id': article.gzh.wechat_id,
+    #         'gzh.name': article.gzh.name,
+    #         'gzh.avatar': article.gzh.avatar,
+    #         'gzh.principal': article.gzh.principal,
+    #         'gzh.desc': article.gzh.desc
+    #     }}
+    #     self._db_articles.update_one(query, update)
 
     def test_account(self, name):
-        record = self._db_objects.find_one({'name': name})
+        record = self._db_accounts.find_one({'name': name})
         return record['_id'] if record is not None else None
 
     def load_account_by_name(self, name):
-        record = self._db_objects.find_one({'name': name})
+        record = self._db_accounts.find_one({'name': name})
         if record is None:
             return None
         else:
             return self.__dict_to_account(record)
 
     def load_account_by_id(self, id):
-        record = self._db_objects.find_one({'_id': id})
+        record = self._db_accounts.find_one({'_id': id})
         if record is None:
             return None
         else:
@@ -157,8 +157,9 @@ class Storage(metaclass=Singleton):
 
         def complement(b, batch_name):
             total_count = self.__load_articles_count(object_id, batch_name)
-            miss_principal_count = self.__load_articles_count(object_id, batch_name, empty_principal=True)
+            account_count, miss_principal_count = self.__load_articles_account_count(object_id, batch_name)
             b['total_count'] = total_count
+            b['account_count'] = account_count
             b['miss_principal_count'] = miss_principal_count
             result['batches'][batch_name if len(batch_name) > 0 else 'NULL'] = b
 
@@ -211,13 +212,17 @@ class Storage(metaclass=Singleton):
         }}
         return self._db_objects.update_one(query, update)
 
-    def __load_articles_count(self, object_id, batch, empty_principal=False):
+    def __load_articles_count(self, object_id, batch):
         query = {'object_id': object_id}
         if len(batch) > 0:
             query['batch'] = batch
-        if empty_principal:
-            query['gzh.principal'] = ''
+        # if empty_principal:
+        #     query['gzh.principal'] = ''
         return self._db_articles.count_documents(query)
+
+    def __load_articles_account_count(self, object_id, batch) -> (int, int):
+        pass
+        return 0, 0
 
     @staticmethod
     def __dict_to_article(d) -> Article:

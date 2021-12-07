@@ -247,4 +247,5 @@ def __information(object_name, batch):
                     print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'],
                                                                                    'YES' if v1['finished'] else 'NO'))
             print('        total count: {}'.format(v['total_count']))
+            print('        account count: {}'.format(v['account_count']))
             print('        miss-principal count: {}'.format(v['miss_principal_count']))
