@@ -227,7 +227,9 @@ def __replenish(object_name, batch):
         storage.Storage().save_account(account)
 
     for article in articles:
+        print(article.gzh)
         if article.gzh.detailed == 0:
+            print('gzh {} need to be replenished'.format(article.gzh.name))
             if acquire.replenish_gzh(ws_api, article.gzh):
                 print('article {} replenished gzh succeed, gzh = {}'.format(article, article.gzh))
                 save(article.gzh)

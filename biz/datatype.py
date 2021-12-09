@@ -16,7 +16,7 @@ class Account:
     detailed = 0
 
     def __repr__(self):
-        return 'name=\'{}\', principal=\'{}\', wechat_id=\'{}\', desc=\'{}\''.format(self.name, self.principal, self.wechat_id, self.desc)
+        return 'name=\'{}\', principal=\'{}\', wechat_id=\'{}\', desc=\'{}\', detailed={}'.format(self.name, self.principal, self.wechat_id, self.desc, self.detailed)
 
 
 @dataclass

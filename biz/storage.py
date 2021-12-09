@@ -99,7 +99,7 @@ class Storage(metaclass=Singleton):
     def expand_account_of_articles(self, articles):
         cache = {}
         for a in articles:
-            if a.gzh_id in a:
+            if a.gzh_id in cache:
                 a.gzh = cache[a.gzh_id]
             else:
                 gzh = self.load_account_by_id(a.gzh_id)
@@ -221,7 +221,19 @@ class Storage(metaclass=Singleton):
         return self._db_articles.count_documents(query)
 
     def __load_articles_account_count(self, object_id, batch) -> (int, int):
-        pass
+        filter = {'object_id': object_id}
+        if len(batch) > 0:
+            filter['batch'] = batch
+        print(filter)
+        ids = self._db_articles.distinct('gzh_id', filter)
+        print(ids)
+        if len(ids) > 0:
+            filter1 = {'_id': {'$in': ids}}
+            total_count = self._db_accounts.count(filter1)
+            filter2 = filter1
+            filter2['detailed'] = 0
+            miss_principal_count = self._db_accounts.count(filter2)
+            return total_count, miss_principal_count
         return 0, 0
 
     @staticmethod
