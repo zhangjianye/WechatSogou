@@ -34,7 +34,7 @@ class Article:
     gzh: Account
     imgs: []
 
-    def __init__(self, id=None, index=0, title='', url='', temp_url='', time='', wechat_name='', profile_url='', isv=0, gzh=None):
+    def __init__(self, id=None, index=0, title='', url='', temp_url='', time='', wechat_name='', profile_url='', isv=0, gzh=None, gzh_id=None):
         self.id = id
         self.index = index
         self.title = title
@@ -44,7 +44,7 @@ class Article:
         self.wechat_name = wechat_name
         self.profile_url = profile_url
         self.isv = isv
-        self.gzh_id = None
+        self.gzh_id = gzh_id
         if gzh is None:
             self.gzh = Account()
         else:

@@ -24,7 +24,8 @@ def get_account_detail(ws_api: WechatSogouAPI, profile_url, gzh, wechat_name='')
     return False
 
 
-def search_article(ws_api: WechatSogouAPI, keyword, article_set, gzh_tester, gzh_saver, page_limit=0, specified_page=0):
+def search_article(ws_api: WechatSogouAPI, keyword, article_set, gzh_tester, gzh_saver, page_limit=0, specified_page=0,
+                   verified_only=False):
     articles = []
     # images = {}
     # index = 0
@@ -73,7 +74,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, gzh_tester, gzh
             gzh_id = gzh_tester(article.wechat_name)
             if gzh_id is None:
                 gzh = article.gzh
-                if not get_account_detail(ws_api, article.profile_url, gzh, article.wechat_name):
+                if (verified_only and not article.isv) or not get_account_detail(ws_api, article.profile_url, gzh, article.wechat_name):
                     gzh.name = article.wechat_name
                 gzh.isv = article.isv
                 id = gzh_saver(gzh)

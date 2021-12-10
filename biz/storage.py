@@ -72,7 +72,7 @@ class Storage(metaclass=Singleton):
         self.__update_object_info(object_id, index, batch, keyword, last_page, finished)
 
     def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False, batch='',
-                      expand_account=False):
+                      expand_account=False, verified_only=False):
         object_id = self.__get_object_id(object_name)
         query = {
             'object_id': object_id,
@@ -87,11 +87,13 @@ class Storage(metaclass=Singleton):
             query['url'] = ''
         if len(batch) > 0:
             query['batch'] = batch
+        if verified_only:
+            query['isv'] = 1
         if limit > 0:
             result = self._db_articles.find(query).limit(limit)
         else:
             result = self._db_articles.find(query)
-        articles = (self.__dict_to_article(d) for d in result)
+        articles = [self.__dict_to_article(d) for d in result]
         if expand_account:
             self.expand_account_of_articles(articles)
         return articles
@@ -148,7 +150,7 @@ class Storage(metaclass=Singleton):
             query = {'_id': account.id}
             self._db_accounts.update_one(query, {'$set': record})
 
-    def load_object_info(self, object_name, batch):
+    def load_object_info(self, object_name, batch, verified_only):
         obj = self.__load_object(object_name)
         if obj is None:
             return None
@@ -156,8 +158,9 @@ class Storage(metaclass=Singleton):
         result = {'object': object_name, 'batches': obj['batches']}
 
         def complement(b, batch_name):
-            total_count = self.__load_articles_count(object_id, batch_name)
-            account_count, miss_principal_count = self.__load_articles_account_count(object_id, batch_name)
+            total_count = self.__load_articles_count(object_id, batch_name, verified_only)
+            account_count, miss_principal_count = self.__load_articles_account_count(object_id, batch_name,
+                                                                                     verified_only)
             b['total_count'] = total_count
             b['account_count'] = account_count
             b['miss_principal_count'] = miss_principal_count
@@ -212,21 +215,23 @@ class Storage(metaclass=Singleton):
         }}
         return self._db_objects.update_one(query, update)
 
-    def __load_articles_count(self, object_id, batch):
+    def __load_articles_count(self, object_id, batch, verified_only):
         query = {'object_id': object_id}
         if len(batch) > 0:
             query['batch'] = batch
+        if verified_only:
+            query['isv'] = 1
         # if empty_principal:
         #     query['gzh.principal'] = ''
         return self._db_articles.count_documents(query)
 
-    def __load_articles_account_count(self, object_id, batch) -> (int, int):
+    def __load_articles_account_count(self, object_id, batch, verified_only) -> (int, int):
         filter = {'object_id': object_id}
         if len(batch) > 0:
             filter['batch'] = batch
-        print(filter)
+        if verified_only:
+            filter['isv'] = 1
         ids = self._db_articles.distinct('gzh_id', filter)
-        print(ids)
         if len(ids) > 0:
             filter1 = {'_id': {'$in': ids}}
             total_count = self._db_accounts.count(filter1)
@@ -255,6 +260,7 @@ class Storage(metaclass=Singleton):
                           wechat_name=d['wechat_name'],
                           profile_url=d['profile_url'],
                           isv=d['isv'],
+                          gzh_id=d['gzh_id'],
                           # gzh=account,
                           )
         article.imgs = d['imgs']

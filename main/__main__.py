@@ -18,15 +18,15 @@ def __connect_db():
 def __parse_argv(argv):
     args = {}
     usage = """
-    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>] [-a <batch name>]
-           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]  [-a <batch name>]
-           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]  [-a <batch name>]
-           wx.exe -r -o <object name>  [-a <batch name>]
-           wx.exe -i -o <object name>  [-a <batch name>]
+    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>] [-a <batch name>] [-v]
+           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]  [-a <batch name>] [-v]
+           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]  [-a <batch name>] [-v]
+           wx.exe -r -o <object name>  [-a <batch name>] [-v]
+           wx.exe -i -o <object name>  [-a <batch name>] [-v]
     """
-    short_opts = 'hscgrik:o:b:e:t:f:a:'
-    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'information', 'key=', 'object=', 'begin=',
-                 'end=', 'template=', 'filename=', 'batch=']
+    short_opts = 'hscgrivk:o:b:e:t:f:a:'
+    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'information', 'verified', 'key=', 'object=',
+                 'begin=', 'end=', 'template=', 'filename=', 'batch=']
     try:
         opts, values = getopt.getopt(argv, short_opts, long_opts)
     except getopt.GetoptError:
@@ -100,6 +100,8 @@ def __parse_argv(argv):
                 conflicting = True
                 break
             args['a'] = val
+        elif arg in ('-v', '--verified'):
+            args['v'] = 1
     if conflicting:
         print('arguments conflicted.')
         print(usage)
@@ -120,6 +122,7 @@ def __parse_argv(argv):
 
 def __do(args):
     object_name = args['o']
+    verified_only = True if 'v' in args else False
     if args['m'] == 's':
         keywords = list(args['k'])
         begin_page = args['b'] if 'b' in args else 1
@@ -127,36 +130,36 @@ def __do(args):
             begin_page = 1
         end_page = args['e'] if 'e' in args else 0
         batch = args['a'] if 'a' in args else 'default'
-        __search(object_name, keywords, begin_page, end_page, batch)
+        __search(object_name, keywords, begin_page, end_page, batch, verified_only)
     elif args['m'] == 'c':
         keys = list(args['k'])
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
         batch = args['a'] if 'a' in args else 'default'
-        __convert(object_name, keys, begin_index, end_index, batch)
+        __convert(object_name, keys, begin_index, end_index, batch, verified_only)
     elif args['m'] == 'g':
         template = args['t']
         filename = args['f'] if 'f' in args else object_name
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
         batch = args['a'] if 'a' in args else 'default'
-        __generate(object_name, template, filename, begin_index, end_index, batch)
+        __generate(object_name, template, filename, begin_index, end_index, batch, verified_only)
     elif args['m'] == 'r':
         batch = args['a'] if 'a' in args else 'default'
-        __replenish(object_name, batch)
+        __replenish(object_name, batch, verified_only)
     elif args['m'] == 'i':
         batch = args['a'] if 'a' in args else ''
-        __information(object_name, batch)
+        __information(object_name, batch, verified_only)
 
 
 def main(argv):
     __connect_db()
     args = __parse_argv(argv)
-    print(args)
+    print('args: {}'.format(args))
     __do(args)
 
 
-def __search(object_name, keywords, begin_page, end_page, batch):
+def __search(object_name, keywords, begin_page, end_page, batch, verified_only):
     assert len(keywords) > 0
     need_login = True
     if 0 < end_page <= 10:
@@ -170,10 +173,11 @@ def __search(object_name, keywords, begin_page, end_page, batch):
         storage.Storage().save_articles(object_name, keyword, articles, batch, page, finished)
 
     for k in keywords:
-        __search_single_keyword(ws_api, k, begin_page, end_page, lambda x, y, z: save(k, x, y, z), articles_set)
+        __search_single_keyword(ws_api, k, begin_page, end_page, lambda x, y, z: save(k, x, y, z), articles_set,
+                                verified_only)
 
 
-def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, article_set):
+def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, article_set, verified_only):
     page = begin_page
     continue_search = True
 
@@ -186,7 +190,7 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
 
     while (page <= end_page or end_page == 0) and continue_search:
         articles, continue_search = acquire.search_article(ws_api, keyword, article_set, test_gzh, save_gzh,
-                                                           specified_page=page)
+                                                           specified_page=page, verified_only=verified_only)
         if len(articles) > 0:
             process.process_qrcode(articles)
             save_method(articles, page, not continue_search)
@@ -198,8 +202,9 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
     print('search {} end at page {}'.format(keyword, page - 1))
 
 
-def __convert(object_name, keys, begin_index, end_index, batch):
-    articles = storage.Storage().load_articles(object_name, begin_index, end_index, empty_url=True, batch=batch)
+def __convert(object_name, keys, begin_index, end_index, batch, verified_only):
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index, empty_url=True, batch=batch,
+                                               verified_only=verified_only)
     converter = convert.Converter(keys)
     converter.convert(articles, lambda x: storage.Storage().update_article_url(x))
     # for a in articles:
@@ -214,40 +219,43 @@ def __convert(object_name, keys, begin_index, end_index, batch):
     #             break
 
 
-def __generate(object_name, template, filename, begin_index, end_index, batch):
-    articles = storage.Storage().load_articles(object_name, begin_index, end_index, batch=batch, expand_account=True)
+def __generate(object_name, template, filename, begin_index, end_index, batch, verified_only):
+    articles = storage.Storage().load_articles(object_name, begin_index, end_index, batch=batch, expand_account=True,
+                                               verified_only=verified_only)
     output.output_html(object_name, filename, template, articles)
 
 
-def __replenish(object_name, batch):
+def __replenish(object_name, batch, verified_only):
     ws_api = WechatSogouAPI(captcha_break_time=5, need_login=False)
-    articles = storage.Storage().load_articles(object_name, batch=batch, expand_account=True)
+    articles = storage.Storage().load_articles(object_name, batch=batch, expand_account=True,
+                                               verified_only=verified_only)
 
     def save(account):
         storage.Storage().save_account(account)
 
     for article in articles:
-        print(article.gzh)
         if article.gzh.detailed == 0:
             print('gzh {} need to be replenished'.format(article.gzh.name))
             if acquire.replenish_gzh(ws_api, article.gzh):
-                print('article {} replenished gzh succeed, gzh = {}'.format(article, article.gzh))
+                print('article {} replenished gzh succeed, gzh = {}'.format(article.title, article.gzh))
                 save(article.gzh)
 
 
-def __information(object_name, batch):
-    info = storage.Storage().load_object_info(object_name, batch)
+def __information(object_name, batch, verified_only):
+    info = storage.Storage().load_object_info(object_name, batch, verified_only)
     if info is None:
         print('{} not found'.format(object_name))
         return
     print('object :{}'.format(object_name))
     if 'batches' in info:
         for k, v in info['batches'].items():
-            print('    batch {}:'.format(k))
-            if 'keywords' in v:
-                for k1, v1 in v['keywords'].items():
-                    print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'],
-                                                                                   'YES' if v1['finished'] else 'NO'))
-            print('        total count: {}'.format(v['total_count']))
-            print('        account count: {}'.format(v['account_count']))
-            print('        miss-principal count: {}'.format(v['miss_principal_count']))
+            if len(batch) == 0 or k == batch:
+                print('    batch {}:'.format(k))
+                if 'keywords' in v:
+                    for k1, v1 in v['keywords'].items():
+                        print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'],
+                                                                                       'YES' if v1[
+                                                                                           'finished'] else 'NO'))
+                print('        total count: {}'.format(v['total_count']))
+                print('        account count: {}'.format(v['account_count']))
+                print('        miss-principal count: {}'.format(v['miss_principal_count']))
