@@ -142,10 +142,10 @@ def __do(args):
         filename = args['f'] if 'f' in args else object_name
         begin_index = args['b'] if 'b' in args else 0
         end_index = args['e'] if 'e' in args else 0
-        batch = args['a'] if 'a' in args else 'default'
+        batch = args['a'] if 'a' in args else ''
         __generate(object_name, template, filename, begin_index, end_index, batch, verified_only)
     elif args['m'] == 'r':
-        batch = args['a'] if 'a' in args else 'default'
+        batch = args['a'] if 'a' in args else ''
         __replenish(object_name, batch, verified_only)
     elif args['m'] == 'i':
         batch = args['a'] if 'a' in args else ''

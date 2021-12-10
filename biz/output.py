@@ -30,6 +30,7 @@ def output_html(title, filename, template_name, articles):
             'isv': '是' if a.isv == 1 else '否',
             'wechat_id': gzh.wechat_id,
             'principal': gzh.principal,
+            'detailed': gzh.detailed,
             'desc': gzh.desc,
             'qr_code': gzh.qr_code
         }

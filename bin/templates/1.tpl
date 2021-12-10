@@ -155,7 +155,13 @@
                 <td>{{article['gzh_name']}}</td>
                 <td class="isv">{{article['isv']}}</td>
                 <td>{{article['wechat_id']}}</td>
+                % if len(article['principal']) > 0:
                 <td>{{article['principal']}}</td>
+                % elif article['detailed']:
+                <td>无法获取</td>
+                % else:
+                <td></td>
+                % end
                 <td>{{article['desc']}}</td>
                 <td><div class="qrcode_container"><img class="thumb qrcode" src="{{article['qr_code']}}"></div></td>
             </tr>

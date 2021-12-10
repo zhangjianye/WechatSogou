@@ -159,7 +159,13 @@
                 % end
                 <td class="isv">{{article['isv']}}</td>
                 <td>{{article['wechat_id']}}</td>
+                % if len(article['principal']) > 0:
                 <td>{{article['principal']}}</td>
+                % elif article['detailed']:
+                <td>无法获取</td>
+                % else:
+                <td></td>
+                % end
                 <td>{{article['desc']}}</td>
                 <td><a href="{{article['qr_code']}}" target="_blank">{{article['qr_code']}}</a></td>
             </tr>
