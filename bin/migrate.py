@@ -47,7 +47,7 @@ class Migrator:
         del(article['gzh'])
         article['version'] = self._version
         article['batch'] = 'default'
-        self._db_articles.update_one({'_id': article['_id']}, article)
+        self._db_articles.replace_one({'_id': article['_id']}, article)
 
     def load_account(self, name):
         return self._db_accounts.find_one({'name': name})
@@ -58,7 +58,7 @@ class Migrator:
         return self._db_accounts.insert_one(gzh).inserted_id
 
     def update_account(self, gzh):
-        self._db_accounts.update_one({'_id': gzh['_id']}, gzh)
+        self._db_accounts.replace_one({'_id': gzh['_id']}, gzh)
 
     def update_object(self, object_id, keyword):
         query = {'_id': object_id}
