@@ -7,6 +7,7 @@ from datetime import datetime
 
 class Storage(metaclass=Singleton):
     def __init__(self, connection_string=''):
+        self._version = 2
         mongo_client = pymongo.MongoClient(connection_string)
         try:
             _ = mongo_client.server_info()
@@ -59,6 +60,7 @@ class Storage(metaclass=Singleton):
                 'gzh_id': a.gzh_id,
                 'imgs': a.imgs,
                 'batch': batch,
+                'version': self._version
             }
             records.append(record)
         self._db_articles.insert_many(records)
@@ -147,8 +149,10 @@ class Storage(metaclass=Singleton):
         obj = self.__load_object(object_name)
         if obj is None:
             return None
+        if 'version' not in obj or obj['version'] < self._version:
+            return None
         object_id = obj['_id']
-        result = {'object': object_name, 'batches': obj['batches']}
+        result = {'object': object_name, 'version': obj['version'], 'batches': obj['batches']}
 
         def complement(b, batch_name):
             total_count = self.__load_articles_count(object_id, batch_name, verified_only)
@@ -183,13 +187,17 @@ class Storage(metaclass=Singleton):
 
     def __load_or_create_object(self, object_name):
         query = {'name': object_name}
-        object = self._db_objects.find_one(query)
+        obj = self._db_objects.find_one(query)
         last_index = 0
-        if object is None:
-            object_id = self._db_objects.insert_one({'name': object_name, 'last_index': 0}).inserted_id
+        if obj is None:
+            object_id = self._db_objects.insert_one({
+                'name': object_name,
+                'last_index': 0,
+                'version': self._version
+            }).inserted_id
         else:
-            object_id = object['_id']
-            last_index = object['last_index']
+            object_id = obj['_id']
+            last_index = obj['last_index']
         return object_id, last_index
 
     def __load_articles_for_set(self, object_id):
@@ -204,7 +212,7 @@ class Storage(metaclass=Singleton):
             'batches.' + batch + '.keywords.' + keyword: {
                 'last_page': last_page,
                 'finished': True if finished else False,
-                'updated':  datetime.now()
+                'updated': datetime.now()
             }
         }}
         return self._db_objects.update_one(query, update)
@@ -274,8 +282,7 @@ class Storage(metaclass=Singleton):
         account.detailed = d['detailed']
         return account
 
-    @staticmethod
-    def __account_to_dict(account):
+    def __account_to_dict(self, account):
         return {
             'name': account.name,
             'avatar': account.avatar,
@@ -284,5 +291,6 @@ class Storage(metaclass=Singleton):
             'desc': account.desc,
             'qr_code': account.qr_code,
             'isv': account.isv,
-            'detailed': account.detailed
+            'detailed': account.detailed,
+            'version': self._version
         }

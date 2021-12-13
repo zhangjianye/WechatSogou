@@ -244,9 +244,9 @@ def __replenish(object_name, batch, verified_only):
 def __information(object_name, batch, verified_only):
     info = storage.Storage().load_object_info(object_name, batch, verified_only)
     if info is None:
-        print('{} not found'.format(object_name))
+        print('{} not found or version too old'.format(object_name))
         return
-    print('object :{}'.format(object_name))
+    print('object: {}, version: {}'.format(object_name, info['version']))
     if 'batches' in info:
         for k, v in info['batches'].items():
             if len(batch) == 0 or k == batch:
