@@ -2,7 +2,7 @@
 import getopt
 import sys
 
-from biz import acquire, output, process, storage, convert
+from biz import acquire, output, storage, convert
 from wechatsogou import WechatSogouAPI
 from common import tools
 
@@ -192,7 +192,7 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
         articles, continue_search = acquire.search_article(ws_api, keyword, article_set, test_gzh, save_gzh,
                                                            specified_page=page, verified_only=verified_only)
         if len(articles) > 0:
-            process.process_qrcode(articles)
+            # process.process_qrcode(articles)
             save_method(articles, page, not continue_search)
             # result.extend(articles)
             # row = output.output_excel(workbook, sheet, articles, row)
@@ -253,9 +253,10 @@ def __information(object_name, batch, verified_only):
                 print('    batch {}:'.format(k))
                 if 'keywords' in v:
                     for k1, v1 in v['keywords'].items():
-                        print('        keyword {}, last page: {}, finished: {}'.format(k1, v1['last_page'],
-                                                                                       'YES' if v1[
-                                                                                           'finished'] else 'NO'))
+                        last_page = v1['last_page']
+                        finished = 'YES' if v1['finished'] else 'NO'
+                        updated = v1['updated'].strftime("%m/%d/%Y, %H:%M:%S")
+                        print('        keyword {}, last page: {}, finished: {}, last_time: {}'.format(k1, last_page, finished, updated))
                 print('        total count: {}'.format(v['total_count']))
                 print('        account count: {}'.format(v['account_count']))
                 print('        miss-principal count: {}'.format(v['miss_principal_count']))

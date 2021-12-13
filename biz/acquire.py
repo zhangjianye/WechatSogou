@@ -1,8 +1,6 @@
-import wechatsogou
 from biz.datatype import Article, Account
-from wechatsogou import WechatSogouAPI, WechatSogouConst, WechatSogouException
-from wechatsogou.request import WechatSogouRequest
-import time
+from biz import process
+from wechatsogou import WechatSogouAPI, WechatSogouException
 
 
 def get_account_detail(ws_api: WechatSogouAPI, profile_url, gzh, wechat_name=''):
@@ -77,6 +75,7 @@ def search_article(ws_api: WechatSogouAPI, keyword, article_set, gzh_tester, gzh
                 if (verified_only and not article.isv) or not get_account_detail(ws_api, article.profile_url, gzh, article.wechat_name):
                     gzh.name = article.wechat_name
                 gzh.isv = article.isv
+                process.process_qrcode(gzh)
                 id = gzh_saver(gzh)
                 article.gzh_id = id
             else:

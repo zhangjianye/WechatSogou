@@ -1,9 +1,7 @@
-from biz.datatype import Article
+from biz.datatype import Account
 # from common import qr
 
 
-def process_qrcode(articles: [Article]):
-    for article in articles:
-        gzh = article.gzh
-        if gzh and len(gzh.wechat_id) > 0:
-            article.gzh.qr_code = 'https://open.weixin.qq.com/qr/code?username=' + gzh.wechat_id
+def process_qrcode(account: Account):
+    if len(account.wechat_id) > 0:
+        account.qr_code = 'https://open.weixin.qq.com/qr/code?username=' + account.wechat_id

@@ -2,6 +2,7 @@ import pymongo
 import pymongo.errors
 from common.singleton import Singleton
 from biz.datatype import Article, Account
+from datetime import datetime
 
 
 class Storage(metaclass=Singleton):
@@ -56,14 +57,6 @@ class Storage(metaclass=Singleton):
                 'profile_url': a.profile_url,
                 'isv': a.isv,
                 'gzh_id': a.gzh_id,
-                # 'gzh': {
-                #     'name': a.gzh.name,
-                #     'avatar': a.gzh.avatar,
-                #     'principal': a.gzh.principal,
-                #     'wechat_id': a.gzh.wechat_id,
-                #     'desc': a.gzh.desc,
-                #     'qr_code': a.gzh.qr_code
-                # },
                 'imgs': a.imgs,
                 'batch': batch,
             }
@@ -210,7 +203,8 @@ class Storage(metaclass=Singleton):
             'last_index': last_index,
             'batches.' + batch + '.keywords.' + keyword: {
                 'last_page': last_page,
-                'finished': True if finished else False
+                'finished': True if finished else False,
+                'updated':  datetime.now()
             }
         }}
         return self._db_objects.update_one(query, update)
