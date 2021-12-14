@@ -255,8 +255,10 @@ def __information(object_name, batch, verified_only):
                     for k1, v1 in v['keywords'].items():
                         last_page = v1['last_page']
                         finished = 'YES' if v1['finished'] else 'NO'
-                        updated = v1['updated'].strftime("%m/%d/%Y, %H:%M:%S")
-                        print('        keyword {}, last page: {}, finished: {}, last_time: {}'.format(k1, last_page, finished, updated))
+                        updated = v1['updated'].strftime("%m/%d/%Y-%H:%M:%S")
+                        count = v1['count'] if 'count' in v1 else 0
+                        print('        keyword {}, last page: {}, finished: {}, last_time: {}, count: {}'.
+                              format(k1, last_page, finished, updated, count))
                 print('        total count: {}'.format(v['total_count']))
                 print('        account count: {}'.format(v['account_count']))
                 print('        miss-principal count: {}'.format(v['miss_principal_count']))

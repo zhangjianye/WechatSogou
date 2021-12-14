@@ -163,6 +163,10 @@ class Storage(metaclass=Singleton):
             b['miss_principal_count'] = miss_principal_count
             result['batches'][batch_name if len(batch_name) > 0 else 'NULL'] = b
 
+            for keyword, v in b['keywords'].items():
+                count = self.__load_articles_count_by_keyword(object_id, keyword, batch, verified_only)
+                v['count'] = count
+
         if len(batch) > 0:
             if 'batches' in result:
                 batches = result['batches']
@@ -219,6 +223,16 @@ class Storage(metaclass=Singleton):
 
     def __load_articles_count(self, object_id, batch, verified_only):
         query = {'object_id': object_id}
+        if len(batch) > 0:
+            query['batch'] = batch
+        if verified_only:
+            query['isv'] = 1
+        # if empty_principal:
+        #     query['gzh.principal'] = ''
+        return self._db_articles.count_documents(query)
+
+    def __load_articles_count_by_keyword(self, object_id, keyword, batch, verified_only):
+        query = {'object_id': object_id, 'keyword': keyword}
         if len(batch) > 0:
             query['batch'] = batch
         if verified_only:
