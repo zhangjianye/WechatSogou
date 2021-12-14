@@ -7,9 +7,10 @@ from wechatsogou import WechatSogouAPI
 from common import tools
 
 
-def __connect_db():
-    connection_string = 'mongodb://127.0.0.1:27017'
-    # connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
+def __connect_db(local):
+    local_connection_string = 'mongodb://127.0.0.1:27017'
+    remote_connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
+    connection_string = local_connection_string if local else remote_connection_string
     if not storage.Storage(connection_string).connected():
         print('connect to db {} failed.'.format(connection_string))
         sys.exit(1)
@@ -18,15 +19,15 @@ def __connect_db():
 def __parse_argv(argv):
     args = {}
     usage = """
-    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>] [-a <batch name>] [-v]
-           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]  [-a <batch name>] [-v]
-           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]  [-a <batch name>] [-v]
-           wx.exe -r -o <object name>  [-a <batch name>] [-v]
-           wx.exe -i -o <object name>  [-a <batch name>] [-v]
+    usage: wx.exe -s -k <keyword> -o <object name> [-b <begin page>] [-e <end page>] [-a <batch name>] [-v (verified only)] [-l (local)]
+           wx.exe -c -k <key> -o <object name> [-b <begin index>] [-e <end index>]  [-a <batch name>] [-v (verified only)] [-l (local)]
+           wx.exe -g -o <object name> -t <template id> [-f <filename>] [-b <begin index>] [-e <end index>]  [-a <batch name>] [-v (verified only)] [-l (local)]
+           wx.exe -r -o <object name>  [-a <batch name>] [-v (verified only)] [-l (local)]
+           wx.exe -i -o <object name>  [-a <batch name>] [-v (verified only)] [-l (local)]
     """
-    short_opts = 'hscgrivk:o:b:e:t:f:a:'
-    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'information', 'verified', 'key=', 'object=',
-                 'begin=', 'end=', 'template=', 'filename=', 'batch=']
+    short_opts = 'hscgrivlk:o:b:e:t:f:a:'
+    long_opts = ['help', 'search', 'convert', 'generate', 'replenish', 'information', 'verified', 'local',
+                 'key=', 'object=', 'begin=', 'end=', 'template=', 'filename=', 'batch=']
     try:
         opts, values = getopt.getopt(argv, short_opts, long_opts)
     except getopt.GetoptError:
@@ -102,6 +103,8 @@ def __parse_argv(argv):
             args['a'] = val
         elif arg in ('-v', '--verified'):
             args['v'] = 1
+        elif arg in ('-l', '--local'):
+            args['l'] = 1
     if conflicting:
         print('arguments conflicted.')
         print(usage)
@@ -153,9 +156,9 @@ def __do(args):
 
 
 def main(argv):
-    __connect_db()
     args = __parse_argv(argv)
     print('args: {}'.format(args))
+    __connect_db('l' in args)
     __do(args)
 
 
