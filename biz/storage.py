@@ -95,13 +95,19 @@ class Storage(metaclass=Singleton):
 
     def expand_account_of_articles(self, articles):
         cache = {}
+        self.load_accounts_to_cache(cache)
         for a in articles:
             if a.gzh_id in cache:
-                a.gzh = cache[a.gzh_id]
+                a.gzh = self.__dict_to_account(cache[a.gzh_id])
             else:
                 gzh = self.load_account_by_id(a.gzh_id)
                 a.gzh = gzh
                 cache[a.gzh_id] = gzh
+
+    def load_accounts_to_cache(self, cache):
+        accounts = self._db_accounts.find({})
+        for a in accounts:
+            cache[a['_id']] = a
 
     def update_article_url(self, article: Article):
         query = {'_id': article.id}

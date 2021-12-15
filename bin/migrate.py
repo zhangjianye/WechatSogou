@@ -10,12 +10,11 @@ class Migrator:
             _ = mongo_client.server_info()
             mongo_db = mongo_client['wechat']
             self._db_articles = mongo_db['articles']
-            # self._db_articles.insert_one({'test': 'test'})
             self._db_objects = mongo_db['objects']
-            # self._db_objects.insert_one({'test': 'test'})
             self._db_accounts = mongo_db['accounts']
             self._connected = True
             self._version = 2
+            self._accounts = {}
         except pymongo.errors.PyMongoError as err:
             print("connect to mongodb {} failed, err: {}".format(connection_string, err))
             self._db_articles = None
@@ -23,25 +22,38 @@ class Migrator:
             self._connected = False
 
     def migrate(self):
+        self.pre_load_accounts()
         query = {'$or': [{'version': None}, {'version': {'$lt': 2}}]}
-        articles = self._db_articles.find(query)
-        for a in articles:
-            gzh = self.load_account(a['wechat_name'])
-            if gzh is None:
-                gzh = a['gzh']
-                gzh['isv'] = a['isv']
-                if len(gzh['name']) == 0:
-                    gzh['name'] = a['wechat_name']
-                a['gzh_id'] = self.insert_account(gzh)
-            else:
-                a['gzh_id'] = gzh['_id']
-                gzh_new = a['gzh']
-                if len(gzh_new['name']) == 0:
-                    gzh_new['name'] = a['wechat_name']
-                if self.merge_account(gzh, gzh_new):
-                    self.update_account(gzh)
-            self.save_article(a)
-            self.update_object(a['object_id'], a['keyword'])
+        while True:
+            articles = self._db_articles.find(query).limit(2000)
+            count = 0
+            for a in articles:
+                gzh = self._accounts.get(a['wechat_name'])
+                if gzh is None:
+                    gzh = a['gzh']
+                    gzh['isv'] = a['isv']
+                    if len(gzh['name']) == 0:
+                        gzh['name'] = a['wechat_name']
+                    a['gzh_id'] = self.insert_account(gzh)
+                else:
+                    a['gzh_id'] = gzh['_id']
+                    gzh_new = a['gzh']
+                    if len(gzh_new['name']) == 0:
+                        gzh_new['name'] = a['wechat_name']
+                    if self.merge_account(gzh, gzh_new):
+                        self.update_account(gzh)
+                self.save_article(a)
+                self.update_object(a['object_id'], a['keyword'])
+                count += 1
+            if count == 0:
+                break
+            print('{} articles migrated.'.format(count))
+        print('migration finished.')
+
+    def pre_load_accounts(self):
+        accounts = self._db_accounts.find({})
+        for a in accounts:
+            self._accounts[a['name']] = a
 
     def save_article(self, article):
         del(article['gzh'])
@@ -55,6 +67,7 @@ class Migrator:
     def insert_account(self, gzh):
         gzh['version'] = self._version
         gzh['detailed'] = 1 if len(gzh['wechat_id']) > 0 else 0
+        self._accounts[gzh['name']] = gzh
         return self._db_accounts.insert_one(gzh).inserted_id
 
     def update_account(self, gzh):
@@ -65,7 +78,6 @@ class Migrator:
         obj = self._db_objects.find_one(query)
         if 'batches' not in obj or 'default' not in obj['batches'] or keyword not in obj['batches']['default']['keywords']:
             update = {'$set': {
-                'last_index': 0,
                 'version': self._version,
                 'batches.default.keywords.' + keyword: {
                     'last_page': 0,
@@ -105,5 +117,6 @@ class Migrator:
             return False
 
 
-connection_string = 'mongodb://127.0.0.1:27017'
+# connection_string = 'mongodb://127.0.0.1:27017'
+connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
 Migrator(connection_string).migrate()
