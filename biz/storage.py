@@ -43,27 +43,28 @@ class Storage(metaclass=Singleton):
 
     def save_articles(self, object_name, keyword, articles: [Article], batch, last_page, finished):
         object_id, index = self.__load_or_create_object(object_name)
-        records = []
-        for a in articles:
-            index += 1
-            record = {
-                'object_id': object_id,
-                'index': index,
-                'keyword': keyword,
-                'title': a.title,
-                'temp_url': a.temp_url,
-                'url': a.url,
-                'time': a.time,
-                'wechat_name': a.wechat_name,
-                'profile_url': a.profile_url,
-                'isv': a.isv,
-                'gzh_id': a.gzh_id,
-                'imgs': a.imgs,
-                'batch': batch,
-                'version': self._version
-            }
-            records.append(record)
-        self._db_articles.insert_many(records)
+        if len(articles) > 0:
+            records = []
+            for a in articles:
+                index += 1
+                record = {
+                    'object_id': object_id,
+                    'index': index,
+                    'keyword': keyword,
+                    'title': a.title,
+                    'temp_url': a.temp_url,
+                    'url': a.url,
+                    'time': a.time,
+                    'wechat_name': a.wechat_name,
+                    'profile_url': a.profile_url,
+                    'isv': a.isv,
+                    'gzh_id': a.gzh_id,
+                    'imgs': a.imgs,
+                    'batch': batch,
+                    'version': self._version
+                }
+                records.append(record)
+            self._db_articles.insert_many(records)
         self.__update_object_info(object_id, index, batch, keyword, last_page, finished)
 
     def load_articles(self, object_name, begin_index=0, end_index=0, limit=0, empty_url=False, batch='',

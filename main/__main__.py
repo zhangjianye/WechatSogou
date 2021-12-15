@@ -194,9 +194,9 @@ def __search_single_keyword(ws_api, keyword, begin_page, end_page, save_method, 
     while (page <= end_page or end_page == 0) and continue_search:
         articles, continue_search = acquire.search_article(ws_api, keyword, article_set, test_gzh, save_gzh,
                                                            specified_page=page, verified_only=verified_only)
-        if len(articles) > 0:
+        # if len(articles) > 0:
             # process.process_qrcode(articles)
-            save_method(articles, page, not continue_search)
+        save_method(articles, page, not continue_search)
             # result.extend(articles)
             # row = output.output_excel(workbook, sheet, articles, row)
         # else:
