@@ -230,18 +230,18 @@ def __generate(object_name, template, filename, begin_index, end_index, batch, v
 
 def __replenish(object_name, batch, verified_only):
     ws_api = WechatSogouAPI(captcha_break_time=5, need_login=False)
-    articles = storage.Storage().load_articles(object_name, batch=batch, expand_account=True,
-                                               verified_only=verified_only)
+    articles = storage.Storage().load_articles(object_name, batch=batch, verified_only=verified_only)
+    accounts = storage.Storage().load_accounts_of_articles(articles)
 
     def save(account):
         storage.Storage().save_account(account)
 
-    for article in articles:
-        if article.gzh.detailed == 0:
-            print('gzh {} need to be replenished'.format(article.gzh.name))
-            if acquire.replenish_gzh(ws_api, article.gzh):
-                print('article {} replenished gzh succeed, gzh = {}'.format(article.title, article.gzh))
-                save(article.gzh)
+    for a in accounts:
+        if a.detailed == 0:
+            print('gzh {} need to be replenished'.format(a.name))
+            if acquire.replenish_gzh(ws_api, a):
+                print('gzh {} replenished gzh succeed, gzh = {}'.format(a.name, a))
+                save(a)
 
 
 def __information(object_name, batch, verified_only):

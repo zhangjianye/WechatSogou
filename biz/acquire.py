@@ -132,18 +132,21 @@ def search_list(ws_api: WechatSogouAPI, index, page_count):
 
 def replenish_gzh(ws_api: WechatSogouAPI, account: Account) -> bool:
     gzhs = ws_api.search_gzh(account.name if len(account.wechat_id) == 0 else account.wechat_id)
+    print(account)
     profile_url = ''
     for gzh in gzhs:
-        if gzh['wechat_id'] == account.wechat_id or gzh['wechat_name'] == account.name:
+        print('wechat_id = {}, wechat_name = {}'.format(gzh['wechat_id'], gzh['wechat_name']))
+        if gzh['wechat_id'] == account.wechat_id or gzh['wechat_name'] == account.name.replace(' ', ''):
             profile_url = gzh['profile_url']
             account.wechat_id = gzh.get('wechat_id', account.wechat_id)
-            account.name = gzh.get('wechat_name', account.name)
+            if len(account.name) == 0:
+                account.name = gzh.get('wechat_name', account.name)
             account.principal = gzh.get('authentication', account.principal)
             account.avatar = gzh.get('headimage', account.avatar)
             account.desc = gzh.get('introduction', account.desc)
             account.detailed = 1
             process.process_qrcode(account)
-            break
+            return True
     # if len(article.gzh.principal) == 0 or len(article.gzh.name) == 0:
     #     return get_account_detail(ws_api, profile_url, article.gzh)
-    return True
+    return False

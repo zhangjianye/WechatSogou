@@ -93,12 +93,20 @@ class Storage(metaclass=Singleton):
             self.expand_account_of_articles(articles)
         return articles
 
+    def load_accounts_of_articles(self, articles):
+        accounts = {}
+        for a in articles:
+            if a.gzh_id not in accounts:
+                gzh = self.load_account_by_id(a.gzh_id)
+                accounts[a.gzh_id] = gzh
+        return list(accounts.values())
+
     def expand_account_of_articles(self, articles):
         cache = {}
-        self.load_accounts_to_cache(cache)
+        # self.load_accounts_to_cache(cache)
         for a in articles:
             if a.gzh_id in cache:
-                a.gzh = self.__dict_to_account(cache[a.gzh_id])
+                a.gzh = cache[a.gzh_id]
             else:
                 gzh = self.load_account_by_id(a.gzh_id)
                 a.gzh = gzh
