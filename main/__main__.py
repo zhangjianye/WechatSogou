@@ -9,7 +9,8 @@ from common import tools
 
 def __connect_db(local):
     local_connection_string = 'mongodb://127.0.0.1:27017'
-    remote_connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
+    remote_connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts-new.mongodb.rds.aliyuncs.com:3717'
+    //remote_connection_string = 'mongodb://root:09wnLij9vFtHRZCy@official-accounts.mongodb.rds.aliyuncs.com:3717'
     connection_string = local_connection_string if local else remote_connection_string
     if not storage.Storage(connection_string).connected():
         print('connect to db {} failed.'.format(connection_string))
